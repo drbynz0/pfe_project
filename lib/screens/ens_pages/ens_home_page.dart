@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'notes_page.dart';
 import 'messages_page.dart';
+import 'settings.dart';
 import '/widgets/custom_card.dart';
 
 class TeacherHomePage extends StatefulWidget {
@@ -16,6 +17,7 @@ class TeacherHomePageState extends State<TeacherHomePage> {
     const TeacherHomePageContent(),
     const NotesPage(),
     const MessagesPage(),
+    const SettingsPage(),
   ];
 
   void _onItemTapped(int index) {
@@ -31,12 +33,11 @@ class TeacherHomePageState extends State<TeacherHomePage> {
       appBar: AppBar(
         title: const Text(
           'App School',
-          style: TextStyle(color: Colors.white, fontFamily: 'Inter Tight'),
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Inter Tight'),
         ),
         backgroundColor: const Color(0xFF140C5F),
         actions: [
           IconButton(
-
             icon: const Icon(Icons.notifications, color: Colors.white, size: 24),
             onPressed: () {},
           ),
@@ -64,7 +65,12 @@ class TeacherHomePageState extends State<TeacherHomePage> {
             icon: Icon(Icons.message),
             label: 'Messages',
           ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.settings),
+            label: 'Settings',
+          ),
         ],
+        type: BottomNavigationBarType.fixed,
         backgroundColor: const Color.fromARGB(255, 31, 34, 72),
         selectedItemColor: const Color.fromARGB(255, 45, 123, 220),
         unselectedItemColor: const Color.fromARGB(255, 87, 99, 108),

@@ -70,6 +70,9 @@ class CustomCard extends StatelessWidget {
               ),
               subtitle: Text(subtitle),
               trailing: Icon(icon),
+              onTap: () {
+                // Naviguer vers la page suivante
+              },
             ),
           ),
         ],
