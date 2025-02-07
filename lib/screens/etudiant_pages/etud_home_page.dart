@@ -74,6 +74,10 @@ class EtudiantHomePageState extends State<EtudiantHomePage> {
             label: 'Settings',
           ),
         ],
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: const Color.fromARGB(255, 31, 34, 72),
+        selectedItemColor: const Color.fromARGB(255, 45, 123, 220),
+        unselectedItemColor: const Color.fromARGB(255, 87, 99, 108),      
       ),
     );
   }

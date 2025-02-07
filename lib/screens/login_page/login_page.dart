@@ -11,9 +11,12 @@ class LoginPageState extends State<LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
 
   void _login() {
-    if (_emailController.text == "email@gmail.com" &&
+    if (_emailController.text == "ens@gmail.com" &&
         _passwordController.text == "1234") {
       Navigator.pushReplacementNamed(context, '/homeEns');
+    } else if (_emailController.text == "etud@gmail.com" &&
+        _passwordController.text == "1234") {
+      Navigator.pushReplacementNamed(context, '/homeEtud');
     } else {
       showDialog(
         context: context,
