@@ -17,8 +17,8 @@ class EtudiantHomePageState extends State<EtudiantHomePage> {
     const EtudiantHomePageContent(),
     const NotesPage(),
     const MessagesPage(),
-    const SettingsPage(),
     const SuiviBusPage(),
+    const SettingsPage(),
   ];
 
   void _onItemTapped(int index) {
