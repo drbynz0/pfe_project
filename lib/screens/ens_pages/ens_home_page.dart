@@ -3,7 +3,7 @@ import 'notes_page.dart';
 import 'messages_page.dart';
 import 'settings.dart';
 import '/widgets/custom_card.dart';
-//hiba 
+//hiba
 class TeacherHomePage extends StatefulWidget {
       const TeacherHomePage({super.key});
   @override
