@@ -7,7 +7,7 @@ class NotesPage extends StatelessWidget {
     return const Center(
       child: Text(
         'Page des notes',
-        style: TextStyle(fontSize: 24),
+        style: TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Inter Tight'),
       ),
     );
   }

@@ -6,8 +6,8 @@ class BulletinPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Center(
       child: Text(
-        'Page des notes',
-        style: TextStyle(fontSize: 24),
+        'Page de bulletin',
+        style: TextStyle(fontSize: 24, color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Inter Tight'),
       ),
     );
   }
