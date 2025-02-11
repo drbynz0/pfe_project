@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'notes_page.dart';
 import 'messages_page.dart';
 import 'settings.dart';
 import 'suivi_bus.dart';
+import 'suivi_academique.dart';
 
 class EtudiantHomePage extends StatefulWidget {
   const EtudiantHomePage({super.key});
@@ -15,7 +15,7 @@ class EtudiantHomePageState extends State<EtudiantHomePage> {
 
   final List<Widget> _pages = [
     const EtudiantHomePageContent(),
-    const NotesPage(),
+    const SuiviAcademique(),
     const MessagesPage(),
     const SuiviBusPage(),
     const SettingsPage(),
@@ -59,7 +59,7 @@ class EtudiantHomePageState extends State<EtudiantHomePage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.note),
-            label: 'Notes',
+            label: 'Suivi Academique',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.message),
