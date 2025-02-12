@@ -7,7 +7,7 @@ class NotesPage extends StatefulWidget {
 }
 
 class NotesPageState extends State<NotesPage> {
-  String selectedClass = "GI"; // Classe par défaut sélectionnée
+  String selectedClass = "GI";
   TextEditingController searchController = TextEditingController();
   List<Map<String, String>> students = [
     {"name": "Ali Mohamed", "id": "GI001"},
@@ -72,7 +72,7 @@ class NotesPageState extends State<NotesPage> {
               ),
               style: const TextStyle(color: Colors.white),
               onChanged: (value) {
-                setState(() {}); // Met à jour la liste filtrée
+                setState(() {});
               },
             ),
           ),
@@ -98,7 +98,6 @@ class NotesPageState extends State<NotesPage> {
                     subtitle: Text(student["id"]!),
                     trailing: const Icon(Icons.arrow_forward),
                     onTap: () {
-                      // Navigue vers la page de saisie des notes
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -140,7 +139,7 @@ class NotesPageState extends State<NotesPage> {
 class NoteEntryPage extends StatelessWidget {
   final Map<String, String> student;
 
-const NoteEntryPage({required this.student, super.key});  
+const NoteEntryPage({required this.student, super.key});
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -149,6 +148,7 @@ const NoteEntryPage({required this.student, super.key});
         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: const Color(0xFF140C5F),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Center(
         child: Text(

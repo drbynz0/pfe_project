@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '/services/auth_service.dart';
 import 'notes_page.dart';
 import 'messages_page.dart';
 import 'settings.dart';
@@ -41,10 +42,27 @@ class TeacherHomePageState extends State<TeacherHomePage> {
             icon: const Icon(Icons.notifications, color: Colors.white, size: 24),
             onPressed: () {},
           ),
-          IconButton(
+          PopupMenuButton<String>(
             icon: const Icon(Icons.account_circle, color: Colors.white, size: 30),
-            
-            onPressed: () {},
+            offset: const Offset(0, 40),
+            onSelected: (value) {
+              if (value == 'profile') {
+                // Rediriger vers la page de profil
+                Navigator.pushNamed(context, '/profile');
+              } else if (value == 'logout') {
+                AuthService.logout(context);
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'profile',
+                child: Text('Voir profil'),
+              ),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Text('Déconnexion'),
+              ),
+            ],
           ),
         ],
       ),
