@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'notes_page.dart';
+import '/services/auth_service.dart';
 import 'messages_page.dart';
 import 'settings.dart';
 import 'suivi_bus.dart';
+import 'suivi_academique.dart';
 
 class EtudiantHomePage extends StatefulWidget {
   const EtudiantHomePage({super.key});
@@ -15,10 +16,10 @@ class EtudiantHomePageState extends State<EtudiantHomePage> {
 
   final List<Widget> _pages = [
     const EtudiantHomePageContent(),
-    const NotesPage(),
+    const SuiviAcademique(),
     const MessagesPage(),
-    const SettingsPage(),
     const SuiviBusPage(),
+    const SettingsPage(),
   ];
 
   void _onItemTapped(int index) {
@@ -42,9 +43,27 @@ class EtudiantHomePageState extends State<EtudiantHomePage> {
             icon: const Icon(Icons.notifications, color: Colors.white, size: 24),
             onPressed: () {},
           ),
-          IconButton(
+          PopupMenuButton<String>(
             icon: const Icon(Icons.account_circle, color: Colors.white, size: 30),
-            onPressed: () {},
+            offset: const Offset(0, 40),
+            onSelected: (value) {
+              if (value == 'profile') {
+                // Rediriger vers la page de profil
+                Navigator.pushNamed(context, '/profile');
+              } else if (value == 'logout') {
+                AuthService.logout(context);
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'profile',
+                child: Text('Voir profil'),
+              ),
+              const PopupMenuItem(
+                value: 'logout',
+                child: Text('Déconnexion'),
+              ),
+            ],
           ),
         ],
       ),
@@ -59,7 +78,7 @@ class EtudiantHomePageState extends State<EtudiantHomePage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.note),
-            label: 'Notes',
+            label: 'Suivi Academique',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.message),

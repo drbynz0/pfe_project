@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '/utils/profile_page.dart';
 import '/screens/login_page/login_page.dart';
 import 'screens/ens_pages/ens_home_page.dart';
 import 'screens/etudiant_pages/etud_home_page.dart';
@@ -22,6 +23,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/homeEns': (context) => const TeacherHomePage(),
         '/homeEtud': (context) => const EtudiantHomePage(),
+        '/profile': (context) => const ProfilePage(),
       },
     );
   }
