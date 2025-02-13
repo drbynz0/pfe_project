@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import '/screens/ens_pages/gestion_classe_eleve.dart';
+import '/screens/ens_pages/gestion_classe_matiere.dart';
+
 
 class CustomCard extends StatelessWidget {
   final String title;
   final String subtitle;
   final IconData icon;
-  final Color tileColor; // Couleur de fond pour le ListTile
+  final Color tileColor;
   final Color headerColor;
   final Color color;
   final List<DataColumn>? columns;
@@ -71,7 +74,21 @@ class CustomCard extends StatelessWidget {
               subtitle: Text(subtitle),
               trailing: Icon(icon),
               onTap: () {
-                // Naviguer vers la page suivante
+                if (title == "Gestion des classes et de matières") {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const GestionClassesMatieres(),
+                    ),
+                  );
+                  } else if (title == "Gestion des classes et des élèves") {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const GestionClassesEleves(),
+                      ),
+                    );
+                  }
               },
             ),
           ),
