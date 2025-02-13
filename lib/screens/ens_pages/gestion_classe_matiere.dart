@@ -102,6 +102,9 @@ class GestionClassesMatieresState extends State<GestionClassesMatieres> {
           width: 1,
         ),
         columnSpacing: 20,
+        dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> states) => Colors.white,
+        ),
         headingRowColor: WidgetStateProperty.resolveWith<Color?>(
           (Set<WidgetState> states) => Colors.blue[200],
         ),
