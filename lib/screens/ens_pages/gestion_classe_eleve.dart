@@ -49,9 +49,10 @@ class GestionClassesElevesState extends State<GestionClassesEleves> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Inter Tight'),
         ),
         backgroundColor: const Color(0xFF140C5F),
+        iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           IconButton(
-            icon: const Icon(Icons.send),
+            icon: const Icon(Icons.send, color: Color.fromARGB(255, 72, 144, 226)),
             onPressed: () => _envoyerListePresence(),
           ),
         ],
@@ -75,7 +76,7 @@ class GestionClassesElevesState extends State<GestionClassesEleves> {
 
           // Sélection de la matière et affichage de l'horaire
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
+            padding: const EdgeInsets.symmetric(horizontal: 10),
             child: Row(
               children: [
                 // Choix de la matière
