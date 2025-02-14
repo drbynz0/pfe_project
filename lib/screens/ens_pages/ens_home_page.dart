@@ -4,6 +4,7 @@ import 'notes_page.dart';
 import 'messages_page.dart';
 import 'settings.dart';
 import '/widgets/custom_card.dart';
+import '/services/auth_service.dart';
 //hiba
 class TeacherHomePage extends StatefulWidget {
       const TeacherHomePage({super.key});
@@ -64,6 +65,7 @@ class TeacherHomePageState extends State<TeacherHomePage> {
               ),
             ],
           ),
+        
         ],
       ),
       body: _pages[_selectedIndex],
