@@ -2,11 +2,8 @@ import 'package:flutter/material.dart';
 
 class GestionClassesMatieres extends StatefulWidget {
   const GestionClassesMatieres({super.key});
-<<<<<<< HEAD
-
-=======
 //ikram
->>>>>>> origin/branchikram
+
   @override
   GestionClassesMatieresState createState() => GestionClassesMatieresState();
 }
