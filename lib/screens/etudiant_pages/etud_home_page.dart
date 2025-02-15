@@ -34,7 +34,7 @@ class EtudiantHomePageState extends State<EtudiantHomePage> {
       backgroundColor: const Color(0xFF082E4A),
       appBar: AppBar(
         title: const Text(
-          'App School',
+          'School App',
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Inter Tight'),
         ),
         backgroundColor: const Color(0xFF140C5F),
