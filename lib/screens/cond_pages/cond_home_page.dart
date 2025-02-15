@@ -5,7 +5,7 @@ import 'package:p_f_e_project/services/auth_service.dart';
 import 'messages_page.dart';
 import 'settings.dart';
 import 'suivi_bus.dart';
-// cond_home_page
+
 class CondHomePage extends StatefulWidget {
   @override
   _CondHomePageState createState() => _CondHomePageState();
@@ -20,9 +20,18 @@ class _CondHomePageState extends State<CondHomePage> {
     SettingsPage(),
   ];
 
+  // Liste des notifications simulées
+  List<String> notifications = [];
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+    });
+  }
+
+  void _addNotification(String message) {
+    setState(() {
+      notifications.add(message);
     });
   }
 
@@ -31,15 +40,49 @@ class _CondHomePageState extends State<CondHomePage> {
     return Scaffold(
       backgroundColor: const Color(0xFF082E4A),
       appBar: AppBar(
-
-         title: Text('School App',
-        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Inter Tight'),
-      ),
-              backgroundColor: const Color(0xFF140C5F),
+        title: Text(
+          'School App',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Inter Tight',
+          ),
+        ),
+        backgroundColor: const Color(0xFF140C5F),
         actions: [
+          // Icone de notification
           IconButton(
             icon: const Icon(Icons.notifications, color: Colors.white, size: 24),
-            onPressed: () {},
+            onPressed: () {
+              // Afficher les notifications lorsqu'on clique dessus
+              showDialog(
+                context: context,
+                builder: (_) => AlertDialog(
+                  title: Text('Boîte de Notifications'),
+                  content: notifications.isEmpty
+                      ? Text('Aucune nouvelle notification.')
+                      : Container(
+                          height: 200,
+                          width: 300,
+                          child: ListView(
+                            children: notifications
+                                .map((msg) => ListTile(
+                                      title: Text(msg),
+                                    ))
+                                .toList(),
+                          ),
+                        ),
+                  actions: [
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: Text('Fermer'),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.account_circle, color: Colors.white, size: 30),
@@ -63,7 +106,6 @@ class _CondHomePageState extends State<CondHomePage> {
               ),
             ],
           ),
-        
         ],
       ),
       body: _pages[_selectedIndex],
@@ -75,7 +117,6 @@ class _CondHomePageState extends State<CondHomePage> {
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'settings'),
         ],
         currentIndex: _selectedIndex,
-        
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
         backgroundColor: const Color.fromARGB(255, 31, 34, 72),
@@ -92,19 +133,6 @@ class HomeScreen extends StatelessWidget {
     return Center(
       child: Text(
         'Bienvenue Conducteur',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-}
-
-// lib/screens/cond_pages/messages_page.dart
-class MessagesPage extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'Messages du Conducteur',
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
     );
