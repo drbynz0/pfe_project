@@ -166,6 +166,7 @@ class NotesPageState extends State<NotesPage> {
           width: 1,
         ),
         columnSpacing: 20,
+
         headingRowColor: WidgetStateProperty.resolveWith<Color?>(
           (Set<WidgetState> states) => Colors.blue[200],
         ),

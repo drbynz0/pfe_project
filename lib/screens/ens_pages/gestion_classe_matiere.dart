@@ -114,6 +114,7 @@ class GestionClassesMatieresState extends State<GestionClassesMatieres> {
         child: DataTable(
           border: TableBorder.all(
             color: Colors.blue[200]!,
+            borderRadius: BorderRadius.circular(12),
             width: 1,
           ),
           columnSpacing: 20,

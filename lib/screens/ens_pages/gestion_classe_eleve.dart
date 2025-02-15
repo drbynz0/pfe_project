@@ -189,6 +189,11 @@ class GestionClassesElevesState extends State<GestionClassesEleves> {
         ),
         padding: const EdgeInsets.all(8),
         child: DataTable(
+          border: TableBorder.all(
+            color: Colors.blue[200]!,
+            borderRadius: BorderRadius.circular(12),
+            width: 1,
+          ),
           columnSpacing: 20,
           headingRowColor: WidgetStateProperty.resolveWith<Color?>(
             (Set<WidgetState> states) => Colors.blue[200],
