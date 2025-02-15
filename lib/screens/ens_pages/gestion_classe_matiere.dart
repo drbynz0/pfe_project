@@ -92,51 +92,67 @@ class GestionClassesMatieresState extends State<GestionClassesMatieres> {
     );
   }
 
+  
+
   /// **Table des matières**
   Widget _buildDataTable() {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      child: DataTable(
-        border: TableBorder.all(
-          color: Colors.blue[200]!,
-          width: 1,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 5,
+              spreadRadius: 2,
+            )
+          ],
         ),
-        columnSpacing: 20,
-        dataRowColor: WidgetStateProperty.resolveWith<Color?>(
-          (Set<WidgetState> states) => Colors.white,
-        ),
-        headingRowColor: WidgetStateProperty.resolveWith<Color?>(
-          (Set<WidgetState> states) => Colors.blue[200],
-        ),
-        columns: const [
-          DataColumn(
-            label: Text("Matière", style: TextStyle(fontWeight: FontWeight.bold)),
+        padding: const EdgeInsets.all(8),
+        child: DataTable(
+          border: TableBorder.all(
+            color: Colors.blue[200]!,
+            width: 1,
           ),
-          DataColumn(
-            label: Text("Jour", style: TextStyle(fontWeight: FontWeight.bold)),
+          columnSpacing: 20,
+          dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+            (Set<WidgetState> states) => Colors.white,
           ),
-          DataColumn(
-            label: Text("Horaire", style: TextStyle(fontWeight: FontWeight.bold)),
+          headingRowColor: WidgetStateProperty.resolveWith<Color?>(
+            (Set<WidgetState> states) => Colors.blue[200],
           ),
-          DataColumn(
-            label: Text("Action", style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-        rows: classesData[selectedClass]!.map((matiere) {
-          return DataRow(
-            cells: [
-              DataCell(Text(matiere["matiere"]!)),
-              DataCell(Text(matiere["jour"]!)),
-              DataCell(Text(matiere["horaire"]!)),
-              DataCell(
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _supprimerMatiere(matiere),
+          columns: const [
+            DataColumn(
+              label: Text("Matière", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            DataColumn(
+              label: Text("Jour", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            DataColumn(
+              label: Text("Horaire", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+            DataColumn(
+              label: Text("Action", style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+          rows: classesData[selectedClass]!.map((matiere) {
+            return DataRow(
+              cells: [
+                DataCell(Text(matiere["matiere"]!)),
+                DataCell(Text(matiere["jour"]!)),
+                DataCell(Text(matiere["horaire"]!)),
+                DataCell(
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _supprimerMatiere(matiere),
+                  ),
                 ),
-              ),
-            ],
-          );
-        }).toList(),
+              ],
+            );
+          }).toList(),
+        ),
       ),
     );
   }
