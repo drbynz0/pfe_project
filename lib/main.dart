@@ -24,7 +24,7 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/homeEns': (context) => const TeacherHomePage(),
         '/homeEtud': (context) => const EtudiantHomePage(),
-        '/homeCond':(context) =>  CondHomePage(),
+        '/homeCond':(context) =>  const CondHomePage(),
         '/profile': (context) => const ProfilePage(),
       },
     );

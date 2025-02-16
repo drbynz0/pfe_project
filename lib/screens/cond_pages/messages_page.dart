@@ -1,24 +1,12 @@
 import 'package:flutter/material.dart';
-//
-void main() {
-  runApp(MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      home: MessagesPage(),
-    );
-  }
-}
 
 class MessagesPage extends StatefulWidget {
+  const MessagesPage({super.key});
   @override
-  _MessagesPageState createState() => _MessagesPageState();
+  MessagesPageState createState() => MessagesPageState();
 }
 
-class _MessagesPageState extends State<MessagesPage> {
+class MessagesPageState extends State<MessagesPage> {
   List<String> selectedUsers = [];
   TextEditingController messageController = TextEditingController();
   List<Map<String, dynamic>> messages = [];
@@ -49,7 +37,7 @@ class _MessagesPageState extends State<MessagesPage> {
       setState(() {
         isSendingMessage = true;
       });
-      Future.delayed(Duration(seconds: 2), () {
+      Future.delayed(const Duration(seconds: 2), () {
         setState(() {
           messages.add({"text": messageController.text, "isSent": true});
           messageController.clear();
@@ -83,11 +71,11 @@ class _MessagesPageState extends State<MessagesPage> {
           selectedUsers.isNotEmpty
               ? 'Chat avec ${selectedUsers.join(", ")}'
               : 'Sélectionnez des utilisateurs',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
-            icon: Icon(Icons.group_add),
+            icon: const Icon(Icons.group_add),
             onPressed: _openSelectionPage,
           ),
         ],
@@ -97,31 +85,31 @@ class _MessagesPageState extends State<MessagesPage> {
         child: Column(
           children: [
             Padding(
-              padding: EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(8.0),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   ElevatedButton(
                     onPressed: () => _toggleChatView(true),
-                    child: Text('Nouveau Chat'),
                     style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all(const Color.fromRGBO(91, 73, 94, 1)),
-                      foregroundColor: MaterialStateProperty.all(Colors.white),
-                      shape: MaterialStateProperty.all(RoundedRectangleBorder(
+                      backgroundColor: WidgetStateProperty.all(const Color.fromRGBO(91, 73, 94, 1)),
+                      foregroundColor: WidgetStateProperty.all(Colors.white),
+                      shape: WidgetStateProperty.all(RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       )),
                     ),
+                    child: const Text('Nouveau Chat'),
                   ),
                   ElevatedButton(
                     onPressed: () => _toggleChatView(false),
-                    child: Text('Mes Chats'),
                     style: ButtonStyle(
-                      backgroundColor: MaterialStateProperty.all(const Color.fromRGBO(91, 73, 94, 1)),
-                      foregroundColor: MaterialStateProperty.all(Colors.white),
-                      shape: MaterialStateProperty.all(RoundedRectangleBorder(
+                      backgroundColor: WidgetStateProperty.all(const Color.fromRGBO(91, 73, 94, 1)),
+                      foregroundColor: WidgetStateProperty.all(Colors.white),
+                      shape: WidgetStateProperty.all(RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(20),
                       )),
                     ),
+                    child: const Text('Mes Chats'),
                   ),
                 ],
               ),
@@ -136,7 +124,7 @@ class _MessagesPageState extends State<MessagesPage> {
               ] else ...[
                 Expanded(
                   child: ListView.builder(
-                    padding: EdgeInsets.all(10),
+                    padding: const EdgeInsets.all(10),
                     itemCount: messages.length,
                     itemBuilder: (context, index) {
                       final message = messages[index];
@@ -145,14 +133,14 @@ class _MessagesPageState extends State<MessagesPage> {
                             ? Alignment.centerRight
                             : Alignment.centerLeft,
                         child: Container(
-                          padding: EdgeInsets.all(12),
-                          margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                          padding: const EdgeInsets.all(12),
+                          margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
                           decoration: BoxDecoration(
                             color: message["isSent"]
                                 ? Colors.purpleAccent
                                 : Colors.grey[300],
                             borderRadius: BorderRadius.circular(15),
-                            boxShadow: [
+                            boxShadow: const [
                               BoxShadow(
                                 color: Colors.black26,
                                 offset: Offset(0, 2),
@@ -173,12 +161,12 @@ class _MessagesPageState extends State<MessagesPage> {
                   ),
                 ),
                 if (isSendingMessage)
-                  Padding(
+                  const Padding(
                     padding: EdgeInsets.all(8.0),
                     child: CircularProgressIndicator(),
                   ),
                 Padding(
-                  padding: EdgeInsets.all(8.0),
+                  padding: const EdgeInsets.all(8.0),
                   child: Row(
                     children: [
                       Expanded(
@@ -191,12 +179,12 @@ class _MessagesPageState extends State<MessagesPage> {
                             ),
                             filled: true,
                             fillColor: Colors.white,
-                            contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 20),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
                           ),
                         ),
                       ),
                       IconButton(
-                        icon: Icon(Icons.send, color: Colors.purpleAccent),
+                        icon: const Icon(Icons.send, color: Colors.purpleAccent),
                         onPressed: selectedUsers.isEmpty ? null : _sendMessage,
                       ),
                     ],
@@ -212,7 +200,7 @@ class _MessagesPageState extends State<MessagesPage> {
                     return ListTile(
                       title: Text(
                         'Chat avec ${chat["users"].join(", ")}',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       tileColor: Colors.purple[50],
                       onTap: () {
@@ -236,13 +224,13 @@ class _MessagesPageState extends State<MessagesPage> {
 
 class SelectionPage extends StatefulWidget {
   final Function(List<String>) onSelectUsers;
-  SelectionPage({required this.onSelectUsers});
+  const SelectionPage({super.key, required this.onSelectUsers});
 
   @override
-  _SelectionPageState createState() => _SelectionPageState();
+  SelectionPageState createState() => SelectionPageState();
 }
 
-class _SelectionPageState extends State<SelectionPage> {
+class SelectionPageState extends State<SelectionPage> {
   List<String> parents = ['Parent 1', 'Parent 2'];
   List<String> students = ['Étudiant 1', 'Étudiant 2'];
   List<String> selectedUsers = [];
@@ -275,10 +263,10 @@ class _SelectionPageState extends State<SelectionPage> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(10),
+      padding: const EdgeInsets.all(10),
       child: Column(
         children: [
-          Text(
+          const Text(
             'Sélectionnez les utilisateurs',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
@@ -330,8 +318,8 @@ class _SelectionPageState extends State<SelectionPage> {
                   controller: searchController,
                   decoration: InputDecoration(
                     hintText: 'Rechercher un ${category.toLowerCase()}...',
-                    suffixIcon: Icon(Icons.search),
-                    focusedBorder: OutlineInputBorder(
+                    suffixIcon: const Icon(Icons.search),
+                    focusedBorder: const OutlineInputBorder(
                       borderSide: BorderSide(color: Colors.purpleAccent),
                     ),
                   ),
@@ -366,13 +354,13 @@ class _SelectionPageState extends State<SelectionPage> {
                     widget.onSelectUsers(selectedUsers);
                     Navigator.pop(context);
                   },
-            child: Text('Commencer le chat'),
             style: ButtonStyle(
-              backgroundColor: MaterialStateProperty.all(const Color.fromARGB(255, 140, 116, 144)),
-              foregroundColor: MaterialStateProperty.all(Colors.white),
-              shape: MaterialStateProperty.all(RoundedRectangleBorder(
+              backgroundColor: WidgetStateProperty.all(const Color.fromARGB(255, 140, 116, 144)),
+              foregroundColor: WidgetStateProperty.all(Colors.white),
+              shape: WidgetStateProperty.all(RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
               ))),
+            child: const Text('Commencer le chat'),
           ),
         ],
       ),

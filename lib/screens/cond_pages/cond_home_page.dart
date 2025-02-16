@@ -3,21 +3,20 @@
 import 'package:flutter/material.dart';
 import 'package:p_f_e_project/services/auth_service.dart';
 import 'messages_page.dart';
-import 'settings.dart';
-import 'suivi_bus.dart';
 
 class CondHomePage extends StatefulWidget {
+    const CondHomePage({super.key});
   @override
-  _CondHomePageState createState() => _CondHomePageState();
+  CondHomePageState createState() => CondHomePageState();
 }
 
-class _CondHomePageState extends State<CondHomePage> {
+class CondHomePageState extends State<CondHomePage> {
   int _selectedIndex = 0;
   final List<Widget> _pages = [
-    HomeScreen(),
-    MessagesPage(),
-    SuiviBusPage(),
-    SettingsPage(),
+    const HomeScreen(),
+     const MessagesPage(),
+    const SuiviBusPage(),
+    const SettingsPage(),
   ];
 
   // Liste des notifications simulées
@@ -29,7 +28,7 @@ class _CondHomePageState extends State<CondHomePage> {
     });
   }
 
-  void _addNotification(String message) {
+  void addNotification(String message) {
     setState(() {
       notifications.add(message);
     });
@@ -40,7 +39,7 @@ class _CondHomePageState extends State<CondHomePage> {
     return Scaffold(
       backgroundColor: const Color(0xFF082E4A),
       appBar: AppBar(
-        title: Text(
+        title: const Text(
           'School App',
           style: TextStyle(
             color: Colors.white,
@@ -58,10 +57,10 @@ class _CondHomePageState extends State<CondHomePage> {
               showDialog(
                 context: context,
                 builder: (_) => AlertDialog(
-                  title: Text('Boîte de Notifications'),
+                  title: const Text('Boîte de Notifications'),
                   content: notifications.isEmpty
-                      ? Text('Aucune nouvelle notification.')
-                      : Container(
+                      ? const Text('Aucune nouvelle notification.')
+                      : SizedBox(
                           height: 200,
                           width: 300,
                           child: ListView(
@@ -77,7 +76,7 @@ class _CondHomePageState extends State<CondHomePage> {
                       onPressed: () {
                         Navigator.of(context).pop();
                       },
-                      child: Text('Fermer'),
+                      child: const Text('Fermer'),
                     ),
                   ],
                 ),
@@ -128,9 +127,10 @@ class _CondHomePageState extends State<CondHomePage> {
 
 // Home Screen
 class HomeScreen extends StatelessWidget {
+    const HomeScreen({super.key});
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Text(
         'Bienvenue Conducteur',
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -141,9 +141,10 @@ class HomeScreen extends StatelessWidget {
 
 // lib/screens/cond_pages/suivi_bus.dart
 class SuiviBusPage extends StatelessWidget {
+    const SuiviBusPage({super.key});
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Text(
         'Suivi des Bus',
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -154,9 +155,10 @@ class SuiviBusPage extends StatelessWidget {
 
 // lib/screens/cond_pages/settings.dart
 class SettingsPage extends StatelessWidget {
+  const SettingsPage({super.key});
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Text(
         'Paramètres du Conducteur',
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
