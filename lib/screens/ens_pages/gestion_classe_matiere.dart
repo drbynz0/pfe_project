@@ -113,52 +113,10 @@ class GestionClassesMatieresState extends State<GestionClassesMatieres> {
           ],
         ),
         padding: const EdgeInsets.all(8),
-        child: DataTable(
-          border: TableBorder.all(
-            color: Colors.blue[200]!,
-            borderRadius: BorderRadius.circular(12),
-            width: 1,
-          ),
-          columnSpacing: 20,
-          dataRowColor: WidgetStateProperty.resolveWith<Color?>(
-            (Set<WidgetState> states) => Colors.white,
-          ),
-          headingRowColor: WidgetStateProperty.resolveWith<Color?>(
-            (Set<WidgetState> states) => Colors.blue[200],
-          ),
-          columns: const [
-            DataColumn(
-              label: Text("Matière", style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            DataColumn(
-              label: Text("Jour", style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            DataColumn(
-              label: Text("Horaire", style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            DataColumn(
-              label: Text("Action", style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-          ],
-          rows: classesData[selectedClass]!.map((matiere) {
-            return DataRow(
-              cells: [
-                DataCell(Text(matiere["matiere"]!)),
-                DataCell(Text(matiere["jour"]!)),
-                DataCell(Text(matiere["horaire"]!)),
-                DataCell(
-                  IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _supprimerMatiere(matiere),
-                  ),
-                ),
-              ],
-            );
-          }).toList(),
-        ),
       child: DataTable(
         border: TableBorder.all(
           color: Colors.blue[200]!,
+          borderRadius: BorderRadius.circular(12),
           width: 1,
         ),
         columnSpacing: 20,
@@ -197,6 +155,7 @@ class GestionClassesMatieresState extends State<GestionClassesMatieres> {
             ],
           );
         }).toList(),
+      ),
       ),
     );
   }
