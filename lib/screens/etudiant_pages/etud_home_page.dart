@@ -4,7 +4,8 @@ import 'messages_page.dart';
 import 'settings.dart';
 import 'suivi_bus.dart';
 import 'suivi_academique.dart';
-//hiba
+
+
 class EtudiantHomePage extends StatefulWidget {
   const EtudiantHomePage({super.key});
   @override

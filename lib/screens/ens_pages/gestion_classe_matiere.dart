@@ -92,7 +92,9 @@ class GestionClassesMatieresState extends State<GestionClassesMatieres> {
     );
   }
 
+
   
+
 
   /// **Table des matières**
   Widget _buildDataTable() {
@@ -154,11 +156,52 @@ class GestionClassesMatieresState extends State<GestionClassesMatieres> {
             );
           }).toList(),
         ),
+      child: DataTable(
+        border: TableBorder.all(
+          color: Colors.blue[200]!,
+          width: 1,
+        ),
+        columnSpacing: 20,
+        dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> states) => Colors.white,
+        ),
+        headingRowColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> states) => Colors.blue[200],
+        ),
+        columns: const [
+          DataColumn(
+            label: Text("Matière", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          DataColumn(
+            label: Text("Jour", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          DataColumn(
+            label: Text("Horaire", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          DataColumn(
+            label: Text("Action", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+        rows: classesData[selectedClass]!.map((matiere) {
+          return DataRow(
+            cells: [
+              DataCell(Text(matiere["matiere"]!)),
+              DataCell(Text(matiere["jour"]!)),
+              DataCell(Text(matiere["horaire"]!)),
+              DataCell(
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _supprimerMatiere(matiere),
+                ),
+              ),
+            ],
+          );
+        }).toList(),
       ),
     );
   }
 
-  /// **Afficher le formulaire d'ajout de matière**
+  //Afficher le formulaire d'ajout de matière
   void _afficherFormulaireAjout(BuildContext context) {
     showDialog(
       context: context,
