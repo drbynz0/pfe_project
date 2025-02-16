@@ -17,6 +17,8 @@ class LoginPageState extends State<LoginPage> {
     } else if (_emailController.text == "etud@gmail.com" &&
         _passwordController.text == "1234") {
       Navigator.pushReplacementNamed(context, '/homeEtud');
+       } else if (_emailController.text == "cond@gmail.com" && _passwordController.text == "1234") {
+    Navigator.pushReplacementNamed(context, '/homeCond');
     } else {
       showDialog(
         context: context,
