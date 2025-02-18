@@ -21,12 +21,21 @@ class SaisieNotesPageState extends State<SaisieNotesPage> {
   }
 
   void _initializeNotes() {
-    for (var matiere in widget.matieres) {
-      String nomMatiere = matiere["matiere"];
-      notes[nomMatiere] = widget.student["notes"][nomMatiere] != null
-          ? List<double>.from(widget.student["notes"][nomMatiere])
-          : [];
+      for (var matiere in widget.matieres) {
+    String nomMatiere = matiere["matiere"];
+    var storedNotes = widget.student["notes"][nomMatiere];
+
+    if (storedNotes is String) {
+      // Si la valeur est une String (ex: "13.5"), on la convertit en liste [13.5]
+      notes[nomMatiere] = [double.tryParse(storedNotes) ?? 0.0];
+    } else if (storedNotes is List) {
+      // Si c'est déjà une liste, on la garde
+      notes[nomMatiere] = List<double>.from(storedNotes.map((e) => double.tryParse(e.toString()) ?? 0.0));
+    } else {
+      // Si aucune note n'est enregistrée, on initialise une liste vide
+      notes[nomMatiere] = [];
     }
+  }
   }
 
   void _ajouterNote(String matiere) {
@@ -40,14 +49,14 @@ class SaisieNotesPageState extends State<SaisieNotesPage> {
     return notes.reduce((a, b) => a + b) / notes.length;
   }
 
-  void _enregistrerNotes() {
-    Map<String, double> sousMoyennes = {};
-    for (var matiere in widget.matieres) {
-      sousMoyennes[matiere["matiere"]] = _calculerSousMoyenne(notes[matiere["matiere"]]!);
-    }
-
-    Navigator.pop(context, sousMoyennes);
+void _enregistrerNotes() {
+  Map<String, String> sousMoyennes = {}; // Change le type de double à String
+  for (var matiere in widget.matieres) {
+    sousMoyennes[matiere["matiere"]] = _calculerSousMoyenne(notes[matiere["matiere"]]!).toString();
   }
+  Navigator.pop(context, sousMoyennes);
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -68,6 +77,7 @@ class SaisieNotesPageState extends State<SaisieNotesPage> {
               Tab(text: "Consultation des Notes"),
             ],
           ),
+         iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: TabBarView(
           children: [
