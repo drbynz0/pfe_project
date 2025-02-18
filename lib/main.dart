@@ -1,11 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '/utils/profile_page.dart';
 import '/screens/login_page/login_page.dart';
 import 'screens/ens_pages/ens_home_page.dart';
 import 'screens/etudiant_pages/etud_home_page.dart';
 import 'screens/cond_pages/cond_home_page.dart';
-void main() => runApp(const MyApp());
+import '/services/matiere_service.dart';
 
+void main() {
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => MatiereService()),
+      ],
+      child: const MyApp(),
+    ),
+  );
+}
 class MyApp extends StatelessWidget {
     const MyApp({super.key});
   @override
