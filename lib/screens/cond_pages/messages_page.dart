@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 class MessagesPage extends StatefulWidget {
+
 const MessagesPage({super.key});
   @override
   _MessagesPageState createState() => _MessagesPageState();
@@ -34,7 +35,9 @@ class _MessagesPageState extends State<MessagesPage> {
           children: [
             // Administration
             ListTile(
-              title:  const Text('Administration', style: TextStyle(color: Colors.white)),
+
+              title: const Text('Administration', style: TextStyle(color: Colors.white)),
+
               trailing: Icon(
                 isAdminSelected ? Icons.check_circle : Icons.radio_button_unchecked,
                 color: Colors.white,
@@ -75,7 +78,11 @@ class _MessagesPageState extends State<MessagesPage> {
 },
                   ),
                   IconButton(
-                    icon:  const Icon(Icons.search, color: Colors.white),
+
+                
+
+                    icon: const Icon(Icons.search, color: Colors.white),
+
                     onPressed: () async {
                       final selected = await Navigator.push(
                         context,
@@ -97,7 +104,8 @@ class _MessagesPageState extends State<MessagesPage> {
             ),
             // Étudiants
             ListTile(
-              title:const  Text('Étudiants', style: TextStyle(color: Colors.white)),
+              title: const Text('Étudiants', style: TextStyle(color: Colors.white)),
+
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
