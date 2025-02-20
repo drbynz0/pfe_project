@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 
 class MessagesPage extends StatefulWidget {
 
-const MessagesPage({super.key});
+  const MessagesPage({super.key});
+
   @override
-  _MessagesPageState createState() => _MessagesPageState();
+  MessagesPageState createState() => MessagesPageState();
 }
 
-class _MessagesPageState extends State<MessagesPage> {
+class MessagesPageState extends State<MessagesPage> {
   bool isAdminSelected = false;
   bool isParentsSelected = false;
   bool isStudentsSelected = false;
@@ -188,10 +189,12 @@ class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key, required this.selectedUsers, required this.isAdminSelected});
 
   @override
-  _ChatScreenState createState() => _ChatScreenState();
+  ChatScreenState createState() => ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+
+
+class ChatScreenState extends State<ChatScreen> {
   List<String> messages = [];
   TextEditingController messageController = TextEditingController();
 
@@ -309,10 +312,10 @@ class UserSearchScreen extends StatefulWidget {
   const UserSearchScreen({super.key, required this.users, required this.title});
 
   @override
-  _UserSearchScreenState createState() => _UserSearchScreenState();
+  UserSearchScreenState createState() => UserSearchScreenState();
 }
 
-class _UserSearchScreenState extends State<UserSearchScreen> {
+class UserSearchScreenState extends State<UserSearchScreen> {
   TextEditingController searchController = TextEditingController();
   List<String> selectedUsers = [];
 

@@ -8,7 +8,7 @@
 PRODUCT_NAME = pfe_project
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.pfeProject
+PRODUCT_BUNDLE_IDENTIFIER = com.appschool.pfeProject
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2025 com.example. All rights reserved.

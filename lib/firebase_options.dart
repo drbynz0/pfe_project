@@ -51,7 +51,11 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBhU6_2eMqpO2vg0XTQy_9DRmc37yYj1V0',
+
     appId: '1:633918911980:android:ade6d70270557eca303cc9',
+
+    
+
     messagingSenderId: '633918911980',
     projectId: 'pfe-project-61a90',
     storageBucket: 'pfe-project-61a90.firebasestorage.app',
@@ -68,11 +72,14 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyCCx243UZUkIc2inDcsiFiaCAS_gSMj82k',
+
     appId: '1:633918911980:ios:74a4a3a62303603d303cc9',
     messagingSenderId: '633918911980',
     projectId: 'pfe-project-61a90',
     storageBucket: 'pfe-project-61a90.firebasestorage.app',
     iosBundleId: 'com.example.pfeProject',
+
+    
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
