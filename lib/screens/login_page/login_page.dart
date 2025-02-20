@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 class LoginPage extends StatefulWidget {
-    const LoginPage({super.key});
+  const LoginPage({super.key});
+
   @override
   LoginPageState createState() => LoginPageState();
 }
@@ -9,6 +10,7 @@ class LoginPage extends StatefulWidget {
 class LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _isPasswordVisible = false;
 
   void _login() {
     if (_emailController.text == "ens@gmail.com" &&
@@ -17,8 +19,9 @@ class LoginPageState extends State<LoginPage> {
     } else if (_emailController.text == "etud@gmail.com" &&
         _passwordController.text == "1234") {
       Navigator.pushReplacementNamed(context, '/homeEtud');
-       } else if (_emailController.text == "cond@gmail.com" && _passwordController.text == "1234") {
-    Navigator.pushReplacementNamed(context, '/homeCond');
+    } else if (_emailController.text == "cond@gmail.com" &&
+        _passwordController.text == "1234") {
+      Navigator.pushReplacementNamed(context, '/homeCond');
     } else {
       showDialog(
         context: context,
@@ -41,7 +44,7 @@ class LoginPageState extends State<LoginPage> {
     return Scaffold(
       body: Center(
         child: Container(
-          decoration:const BoxDecoration(
+          decoration: const BoxDecoration(
             gradient: LinearGradient(
               colors: [
                 Color.fromARGB(255, 20, 12, 95),
@@ -71,7 +74,7 @@ class LoginPageState extends State<LoginPage> {
                     Container(
                       width: double.infinity,
                       constraints: const BoxConstraints(
-                      maxWidth: 570.0,
+                        maxWidth: 570.0,
                       ),
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 30),
                       decoration: BoxDecoration(
@@ -110,7 +113,7 @@ class LoginPageState extends State<LoginPage> {
                           ),
                           const SizedBox(height: 15),
                           TextField(
-                            obscureText: true,
+                            obscureText: !_isPasswordVisible,
                             controller: _passwordController,
                             decoration: InputDecoration(
                               hintText: "Mot de passe",
@@ -119,7 +122,16 @@ class LoginPageState extends State<LoginPage> {
                               ),
                               filled: true,
                               fillColor: Colors.grey[200],
-                              suffixIcon: const Icon(Icons.visibility_off),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                ),
+                                onPressed: () {
+                                  setState(() {
+                                    _isPasswordVisible = !_isPasswordVisible;
+                                  });
+                                },
+                              ),
                             ),
                           ),
                           const SizedBox(height: 20),
@@ -132,7 +144,8 @@ class LoginPageState extends State<LoginPage> {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                             ),
-                            child: const Text("Se connecter",
+                            child: const Text(
+                              "Se connecter",
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.white,
@@ -145,6 +158,17 @@ class LoginPageState extends State<LoginPage> {
                             onPressed: () {},
                             child: const Text(
                               "Mot de passe oublié.",
+                              style: TextStyle(color: Color(0xFF4B2DFD)),
+                            ),
+                          ),
+                          const SizedBox(height: 10), // Ajout d'un espace entre les boutons
+                          TextButton(
+                            onPressed: () {
+                              // Logique pour naviguer vers la page d'inscription
+                              Navigator.pushNamed(context, '/signup');
+                            },
+                            child: const Text(
+                              "S'inscrire",
                               style: TextStyle(color: Color(0xFF4B2DFD)),
                             ),
                           ),
