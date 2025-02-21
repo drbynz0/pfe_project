@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -9,65 +11,103 @@ class SignupPage extends StatefulWidget {
 
 class SignupPageState extends State<SignupPage> {
   final TextEditingController _identifierController = TextEditingController();
-  final TextEditingController _tempPasswordController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _provisionalPasswordController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
-  bool _isIdentifierVerified = false;
-  bool _isTempPasswordVisible = false;
+  final TextEditingController _emailController = TextEditingController();
+
+  bool _isVerified = false;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
 
-  void _verifyIdentifier() {
-    // Logique de vérification de l'identifiant et du mot de passe provisoire
-    if (_identifierController.text == "valid_identifiant" && _tempPasswordController.text == "1234") {
-      setState(() {
-        _isIdentifierVerified = true;
-      });
-    } else {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Erreur de vérification'),
-          content: const Text('Identifiant ou mot de passe provisoire incorrect'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+  void _verifyIdentifier() async {
+    String identifier = _identifierController.text.trim();
+    String provisionalPassword = _provisionalPasswordController.text.trim();
+
+    try {
+      var userDoc = await FirebaseFirestore.instance.collection("Users").doc(identifier).get();
+      if (userDoc.exists && userDoc.data()?['provisional_password'] == provisionalPassword) {
+        setState(() {
+          _emailController.text = userDoc.data()?['email'];
+          _isVerified = true;
+        });
+      } else {
+        _showErrorDialog("Identifiant ou mot de passe provisoire incorrect.");
+      }
+    } catch (e) {
+      _showErrorDialog("Erreur lors de la vérification : ${e.toString()}");
     }
   }
 
-  void _createAccount() {
+  void _createAccount() async {
     if (_passwordController.text != _confirmPasswordController.text) {
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Erreur de création de compte'),
-          content: const Text('Les mots de passe ne correspondent pas'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
-            ),
-          ],
-        ),
-      );
+      _showErrorDialog("Les mots de passe ne correspondent pas");
       return;
     }
 
-    // Logique de création de compte et envoi de l'email de confirmation
+    try {
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: _emailController.text.trim(),
+        password: _passwordController.text.trim(),
+      );
+
+      String identifier = _identifierController.text.trim();
+      await FirebaseFirestore.instance.collection("Users").doc(identifier).update({
+        "uid": userCredential.user!.uid,
+        "is_registered": true,
+        "provisional_password": FieldValue.delete(),
+      });
+
+      await userCredential.user!.sendEmailVerification();
+
+      _showSuccessDialog("Compte créé ! Un email de confirmation a été envoyé.", true);
+    } catch (e) {
+      _showErrorDialog("Erreur : ${e.toString()}");
+    }
+  }
+
+  void _showErrorDialog(String message) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Compte créé'),
-        content: const Text('Un email de confirmation a été envoyé.'),
+        title: const Row(
+          children: [
+            Icon(Icons.error, color: Colors.red),
+            SizedBox(width: 10),
+            Text('Erreur'),
+          ],
+        ),
+        content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSuccessDialog(String message, bool redirectToLogin) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green),
+            SizedBox(width: 10),
+            Text('Succès'),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              if (redirectToLogin) {
+                Navigator.pushReplacementNamed(context, '/login');
+              }
+            },
             child: const Text('OK'),
           ),
         ],
@@ -127,7 +167,7 @@ class SignupPageState extends State<SignupPage> {
                             ),
                           ),
                           const SizedBox(height: 10),
-                          if (!_isIdentifierVerified) ...[
+                          if (!_isVerified) ...[
                             Text(
                               "Veuillez vérifier votre identifiant et mot de passe provisoire fournis par l'administrateur.",
                               style: TextStyle(
@@ -150,8 +190,8 @@ class SignupPageState extends State<SignupPage> {
                             ),
                             const SizedBox(height: 15),
                             TextField(
-                              obscureText: !_isTempPasswordVisible,
-                              controller: _tempPasswordController,
+                              obscureText: !_isPasswordVisible,
+                              controller: _provisionalPasswordController,
                               decoration: InputDecoration(
                                 hintText: "Mot de passe provisoire",
                                 border: OutlineInputBorder(
@@ -161,11 +201,11 @@ class SignupPageState extends State<SignupPage> {
                                 fillColor: Colors.grey[200],
                                 suffixIcon: IconButton(
                                   icon: Icon(
-                                    _isTempPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                                    _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
                                   ),
                                   onPressed: () {
                                     setState(() {
-                                      _isTempPasswordVisible = !_isTempPasswordVisible;
+                                      _isPasswordVisible = !_isPasswordVisible;
                                     });
                                   },
                                 ),
@@ -182,7 +222,7 @@ class SignupPageState extends State<SignupPage> {
                                 ),
                               ),
                               child: const Text(
-                                "Vérifier",
+                                "Vérifier l'identifiant",
                                 style: TextStyle(
                                   fontSize: 16,
                                   color: Colors.white,
@@ -210,13 +250,13 @@ class SignupPageState extends State<SignupPage> {
                                 filled: true,
                                 fillColor: Colors.grey[200],
                               ),
+                              enabled: false,
                             ),
                             const SizedBox(height: 15),
                             TextField(
-                              obscureText: !_isPasswordVisible,
                               controller: _passwordController,
                               decoration: InputDecoration(
-                                hintText: "Mot de passe",
+                                hintText: "Nouveau mot de passe",
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.circular(10),
                                 ),

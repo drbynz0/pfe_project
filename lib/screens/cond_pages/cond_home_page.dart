@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:p_f_e_project/services/auth_service.dart';
 import 'messages_page.dart';
+import '/screens/cond_pages/settings.dart';
 
 class CondHomePage extends StatefulWidget {
     const CondHomePage({super.key});
@@ -147,20 +148,6 @@ class SuiviBusPage extends StatelessWidget {
     return const Center(
       child: Text(
         'Suivi des Bus',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-}
-
-// lib/screens/cond_pages/settings.dart
-class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        'Paramètres du Conducteur',
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
     );

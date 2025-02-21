@@ -2,72 +2,53 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+class ResetPasswordPage extends StatefulWidget {
+  const ResetPasswordPage({super.key});
 
   @override
-  LoginPageState createState() => LoginPageState();
+  ResetPasswordPageState createState() => ResetPasswordPageState();
 }
 
-class LoginPageState extends State<LoginPage> {
-  final TextEditingController _idController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  bool _isPasswordVisible = false;
+class ResetPasswordPageState extends State<ResetPasswordPage> {
+  final TextEditingController _identifierController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _ddnController = TextEditingController();
 
-  Future<void> _login() async {
-    String identifiant = _idController.text.trim();
+  Future<void> _resetPassword() async {
+    String identifier = _identifierController.text.trim();
+    String email = _emailController.text.trim();
+    String dateNaissance = _ddnController.text.trim();
+
+    if (!_isDateValid(dateNaissance)) {
+      _showErrorDialog("Veuillez saisir une date de naissance valide au format JJ/MM/AAAA.");
+      return;
+    }
+
     try {
-      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection("Users").doc(identifiant).get();
-
+      var userDoc = await FirebaseFirestore.instance.collection("Users").doc(identifier).get();
       if (userDoc.exists) {
-        String email = userDoc.get("email");
+        String storedEmail = userDoc.data()?['email'];
+        String storedDdn = userDoc.data()?['date_naissance'];
 
-        if (!_isEmailValid(email)) {
-          _showErrorDialog("Veuillez saisir un email valide.");
-          return;
-        }
-
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
-          email: email,
-          password: _passwordController.text,
-        );
-
-        // Récupérer le rôle dans Firestore
-        userDoc = await FirebaseFirestore.instance.collection('Users').doc(identifiant).get();
-
-        if (userDoc.exists) {
-          String userType = userDoc['type'];
-
-          if (userType == 'enseignant') {
-            // ignore: use_build_context_synchronously
-            Navigator.pushReplacementNamed(context, '/homeEns');
-          } else if (userType == 'etudiant') {
-            // ignore: use_build_context_synchronously
-            Navigator.pushReplacementNamed(context, '/homeEtud');
-          } else if (userType == 'conducteur') {
-            // ignore: use_build_context_synchronously
-            Navigator.pushReplacementNamed(context, '/homeCond');
-          } else if (userType == 'parent') {
-            // ignore: use_build_context_synchronously
-            Navigator.pushReplacementNamed(context, '/homePar');
-          } else {
-            _showErrorDialog("Type d'utilisateur inconnu");
-          }
+        if (storedEmail == email && storedDdn == dateNaissance) {
+          await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+          _showSuccessDialog("Un email de réinitialisation de mot de passe a été envoyé à $email.");
         } else {
-          _showErrorDialog("Utilisateur non trouvé");
+          _showErrorDialog("Les informations fournies ne correspondent pas.");
         }
+      } else {
+        _showErrorDialog("Identifiant incorrect.");
       }
-    } on FirebaseAuthException catch (e) {
-      _showErrorDialog(e.message ?? 'Erreur de connexion');
+    } catch (e) {
+      _showErrorDialog("Erreur lors de la vérification : ${e.toString()}");
     }
   }
 
-  bool _isEmailValid(String email) {
-    final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+');
-    return emailRegex.hasMatch(email);
+  bool _isDateValid(String date) {
+    final dateRegex = RegExp(r'^\d{2}/\d{2}/\d{4}$');
+    return dateRegex.hasMatch(date);
   }
 
-  // Fonction pour afficher une boîte de dialogue en cas d'erreur
   void _showErrorDialog(String message) {
     showDialog(
       context: context,
@@ -83,6 +64,31 @@ class LoginPageState extends State<LoginPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showSuccessDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.green),
+            SizedBox(width: 10),
+            Text('Succès'),
+          ],
+        ),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushReplacementNamed(context, '/login');
+            },
             child: const Text('OK'),
           ),
         ],
@@ -114,7 +120,7 @@ class LoginPageState extends State<LoginPage> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Text(
-                      "App School",
+                      "Réinitialisation du mot de passe",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 32,
@@ -134,16 +140,8 @@ class LoginPageState extends State<LoginPage> {
                       ),
                       child: Column(
                         children: [
-                          const Text(
-                            "Bienvenue",
-                            style: TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 10),
                           Text(
-                            "Connectez-vous à l'aide de vos identifiants.",
+                            "Veuillez entrer vos informations pour réinitialiser votre mot de passe.",
                             style: TextStyle(
                               fontSize: 14,
                               color: Colors.grey[700],
@@ -152,7 +150,7 @@ class LoginPageState extends State<LoginPage> {
                           ),
                           const SizedBox(height: 20),
                           TextField(
-                            controller: _idController,
+                            controller: _identifierController,
                             decoration: InputDecoration(
                               hintText: "Identifiant",
                               border: OutlineInputBorder(
@@ -164,30 +162,31 @@ class LoginPageState extends State<LoginPage> {
                           ),
                           const SizedBox(height: 15),
                           TextField(
-                            obscureText: !_isPasswordVisible,
-                            controller: _passwordController,
+                            controller: _emailController,
                             decoration: InputDecoration(
-                              hintText: "Mot de passe",
+                              hintText: "Email",
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               filled: true,
                               fillColor: Colors.grey[200],
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _isPasswordVisible = !_isPasswordVisible;
-                                  });
-                                },
+                            ),
+                          ),
+                          const SizedBox(height: 15),
+                          TextField(
+                            controller: _ddnController,
+                            decoration: InputDecoration(
+                              hintText: "Date de naissance (JJ/MM/AAAA)",
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(10),
                               ),
+                              filled: true,
+                              fillColor: Colors.grey[200],
                             ),
                           ),
                           const SizedBox(height: 20),
                           ElevatedButton(
-                            onPressed: _login,
+                            onPressed: _resetPassword,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: const Color(0xFF4B2DFD),
                               minimumSize: const Size(double.infinity, 50),
@@ -196,33 +195,12 @@ class LoginPageState extends State<LoginPage> {
                               ),
                             ),
                             child: const Text(
-                              "Se connecter",
+                              "Réinitialiser le mot de passe",
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 10),
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pushReplacementNamed(context, '/resetPwd');
-                            },
-                            child: const Text(
-                              "Mot de passe oublié.",
-                              style: TextStyle(color: Color(0xFF4B2DFD)),
-                            ),
-                          ),
-                          const SizedBox(height: 10), // Ajout d'un espace entre les boutons
-                          TextButton(
-                            onPressed: () {
-                              // Logique pour naviguer vers la page d'inscription
-                              Navigator.pushNamed(context, '/signup');
-                            },
-                            child: const Text(
-                              "S'inscrire",
-                              style: TextStyle(color: Color(0xFF4B2DFD)),
                             ),
                           ),
                         ],

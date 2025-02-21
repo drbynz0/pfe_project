@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:p_f_e_project/screens/login_page/signup_page.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart'; // Importez ce fichier après l'avoir généré
 import '/utils/profile_page.dart';
 import '/screens/login_page/login_page.dart';
+import '/screens/login_page/reset_password.dart';
 import 'screens/ens_pages/ens_home_page.dart';
 import 'screens/etudiant_pages/etud_home_page.dart';
 import 'screens/cond_pages/cond_home_page.dart';
@@ -45,6 +47,8 @@ class MyApp extends StatelessWidget {
         '/homeEtud': (context) => const EtudiantHomePage(),
         '/homeCond': (context) => const CondHomePage(),
         '/profile': (context) => const ProfilePage(),
+        '/signup': (context) => const SignupPage(),
+        '/resetPwd': (context) => const ResetPasswordPage()
       },
     );
   }
