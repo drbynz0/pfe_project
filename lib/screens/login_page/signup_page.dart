@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '/services/add_teacher.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -57,6 +58,17 @@ class SignupPageState extends State<SignupPage> {
         "is_registered": true,
         "provisional_password": FieldValue.delete(),
       });
+
+      // Vérifier le type d'utilisateur et ajouter l'enseignant à la collection Enseignant
+      var userDoc = await FirebaseFirestore.instance.collection("Users").doc(identifier).get();
+      if (userDoc.exists && userDoc.data()?['type'] == 'enseignant') {
+        String nom = userDoc.data()?['nom'];
+        String prenom = userDoc.data()?['prenom'];
+        String email = userDoc.data()?['email'];
+
+        TeacherService teacherService = TeacherService();
+        await teacherService.addTeacher(identifier, nom, prenom, email);
+      }
 
       await userCredential.user!.sendEmailVerification();
 
@@ -254,6 +266,7 @@ class SignupPageState extends State<SignupPage> {
                             ),
                             const SizedBox(height: 15),
                             TextField(
+                              obscureText: !_isPasswordVisible,
                               controller: _passwordController,
                               decoration: InputDecoration(
                                 hintText: "Nouveau mot de passe",
