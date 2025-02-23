@@ -8,7 +8,7 @@ import 'screens/ens_pages/ens_home_page.dart';
 import 'screens/etudiant_pages/etud_home_page.dart';
 import 'screens/cond_pages/cond_home_page.dart';
 import '/services/matiere_service.dart';
-
+import 'package:p_f_e_project/screens/login_page/signup_page.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
@@ -45,6 +45,7 @@ class MyApp extends StatelessWidget {
         '/homeEtud': (context) => const EtudiantHomePage(),
         '/homeCond': (context) => const CondHomePage(),
         '/profile': (context) => const ProfilePage(),
+        '/signup':(context) => const SignupPage(),
       },
     );
   }

@@ -1,389 +1,249 @@
 import 'package:flutter/material.dart';
 
-class MessagesPage extends StatefulWidget {
-
-  const MessagesPage({super.key});
+class MessagesConducteurPage extends StatefulWidget {
+  const MessagesConducteurPage({super.key});
 
   @override
-  MessagesPageState createState() => MessagesPageState();
+  MessagesConducteurPageState createState() => MessagesConducteurPageState();
 }
 
-class MessagesPageState extends State<MessagesPage> {
-  bool isAdminSelected = false;
-  bool isParentsSelected = false;
-  bool isStudentsSelected = false;
-  List<String> selectedUsers = [];
+class MessagesConducteurPageState extends State<MessagesConducteurPage> {
+  TextEditingController searchController = TextEditingController();
+  List<Map<String, dynamic>> conversations = [
+    {"name": "Administration", "lastMessage": "Changement d'itinéraire demain.", "time": "08:30"},
+    {"name": "Parents Groupe", "lastMessage": "Merci pour votre service !", "time": "10:15"},
+    {"name": "Élève Karim", "lastMessage": "Je serai en retard demain...", "time": "11:45"},
+  ];
+  List<String> groupes = ["Parents", "Élèves", "Administration"];
 
-  final List<String> parents = ['Ahmed', 'Fatima', 'Mohamed', 'Amina'];
-  final List<String> students = ['Youssef', 'Salma', 'Karim', 'Lina'];
+  List<bool> selectedEleves = List.generate(10, (index) => false); // 10 élèves
+  List<bool> selectedParents = List.generate(10, (index) => false); // 10 parents
+
+  bool selectAllEleves = false; // Contrôle si toutes les cases des élèves doivent être sélectionnées
+  bool selectAllParents = false; // Contrôle si toutes les cases des parents doivent être sélectionnées
+
+  // Toggle sélection/désélection de tous les élèves
+  void _toggleSelectAllEleves() {
+    setState(() {
+      selectAllEleves = !selectAllEleves;
+      for (int i = 0; i < selectedEleves.length; i++) {
+        selectedEleves[i] = selectAllEleves;
+      }
+    });
+  }
+
+  // Toggle sélection/désélection de tous les parents
+  void _toggleSelectAllParents() {
+    setState(() {
+      selectAllParents = !selectAllParents;
+      for (int i = 0; i < selectedParents.length; i++) {
+        selectedParents[i] = selectAllParents;
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF082E4A),
       appBar: AppBar(
-        title: const Text('Sélectionnez des utilisateurs'),
-        backgroundColor: Colors.blue.shade700,
+        title: const Text("Messagerie Conducteur", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF140C5F),
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color.fromARGB(255, 103, 137, 188), Color.fromARGB(255, 139, 114, 141)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+      body: Column(
+        children: [
+          _buildSearchBar(),
+          _buildGroupStatus(),
+          Expanded(child: _buildConversationList()),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showNewMessageOptions(context),
+        backgroundColor: Colors.blue,
+        child: const Icon(Icons.message, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: TextField(
+        controller: searchController,
+        decoration: InputDecoration(
+          labelText: "Rechercher une conversation",
+          prefixIcon: const Icon(Icons.search, color: Colors.white),
+          filled: true,
+          fillColor: Colors.white.withOpacity(0.2),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
         ),
-        child: Column(
-          children: [
-            // Administration
-            ListTile(
+        style: const TextStyle(color: Colors.white),
+        onChanged: (query) {
+          setState(() {});
+        },
+      ),
+    );
+  }
 
-              title: const Text('Administration', style: TextStyle(color: Colors.white)),
-
-              trailing: Icon(
-                isAdminSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                color: Colors.white,
-                
-              ),
-             onTap: () {
-  setState(() {
-    isAdminSelected = !isAdminSelected;
-    if (isAdminSelected) {
-      selectedUsers.add('Administration');
-    } else {
-      selectedUsers.remove('Administration');
-    }
-  });
-},
-            ),
-            // Parents
-            ListTile(
-              title: const Text('Parents', style: TextStyle(color: Colors.white)),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
+  Widget _buildGroupStatus() {
+    return SizedBox(
+      height: 80,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: groupes.length,
+        itemBuilder: (context, index) {
+          return GestureDetector(
+            onTap: () {},
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Column(
                 children: [
-                  IconButton(
-                    icon: Icon(
-                      isParentsSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-  setState(() {
-    if (isParentsSelected) {
-      selectedUsers.removeWhere((user) => parents.contains(user));
-      isParentsSelected = false;
-    } else {
-      selectedUsers.addAll(parents.where((user) => !selectedUsers.contains(user)));
-      isParentsSelected = true;
-    }
-  });
-},
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.blue,
+                    child: Text(groupes[index][0], style: const TextStyle(color: Colors.white, fontSize: 20)),
                   ),
-                  IconButton(
-
-                
-
-                    icon: const Icon(Icons.search, color: Colors.white),
-
-                    onPressed: () async {
-                      final selected = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => UserSearchScreen(users: parents, title: 'Rechercher un parent'),
-                        ),
-                      );
-                      if (selected != null) {
-                        setState(() {
-                          selectedUsers.addAll(selected);
-                          isParentsSelected = parents.every((parent) => selectedUsers.contains(parent));
-                          isAdminSelected = false;
-                        });
-                      }
-                    },
+                  const SizedBox(height: 5),
+                  Flexible(
+                    child: Text(groupes[index], style: const TextStyle(color: Colors.white)),
                   ),
                 ],
-              ),
-            ),
-            // Étudiants
-            ListTile(
-              title: const Text('Étudiants', style: TextStyle(color: Colors.white)),
-
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: Icon(
-                      isStudentsSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                      color: Colors.white,
-                    ),
-                    onPressed: () {
-  setState(() {
-    if (isStudentsSelected) {
-      selectedUsers.removeWhere((user) => students.contains(user));
-      isStudentsSelected = false;
-    } else {
-      selectedUsers.addAll(students.where((user) => !selectedUsers.contains(user)));
-      isStudentsSelected = true;
-    }
-  });
-},
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.search, color: Colors.white),
-                    onPressed: () async {
-                      final selected = await Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => UserSearchScreen(users: students, title: 'Rechercher un étudiant'),
-                        ),
-                      );
-                      if (selected != null) {
-                        setState(() {
-                          selectedUsers.addAll(selected);
-                          isStudentsSelected = students.every((student) => selectedUsers.contains(student));
-                          isAdminSelected = false;
-                        });
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-           ElevatedButton(
-  onPressed: selectedUsers.isNotEmpty || isAdminSelected
-      ? () {
-          List<String> usersToChat = List.from(selectedUsers);
-
-          // Si Administration est sélectionnée, on l'ajoute séparément
-          if (isAdminSelected) {
-            usersToChat.add('Administration');
-          }
-
-          // Évite les doublons
-          usersToChat = usersToChat.toSet().toList();
-
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ChatScreen(
-                selectedUsers: usersToChat,
-                isAdminSelected: isAdminSelected,
               ),
             ),
           );
-        }
-      : null,
-  child: const Text('Commencer le chat'),
-),
-          ],
-        ),
+        },
       ),
     );
   }
-}
 
-// --- Mise à jour de ChatScreen ---
-class ChatScreen extends StatefulWidget {
-  final List<String> selectedUsers;
-  final bool isAdminSelected;
-
-  const ChatScreen({super.key, required this.selectedUsers, required this.isAdminSelected});
-
-  @override
-  ChatScreenState createState() => ChatScreenState();
-}
-
-
-
-class ChatScreenState extends State<ChatScreen> {
-  List<String> messages = [];
-  TextEditingController messageController = TextEditingController();
-
-  @override
-  Widget build(BuildContext context) {
-    // Groupes prédéfinis pour Parents et Étudiants
-    Set<String> parents = {'Ahmed', 'Fatima', 'Mohamed', 'Amina'};
-    Set<String> students = {'Youssef', 'Salma', 'Karim', 'Lina'};
-
-    // Convertir la liste des utilisateurs sélectionnés en Set pour comparaison
-    Set<String> selectedSet = widget.selectedUsers.toSet();
-
-    // Vérifier si tous les parents ou tous les étudiants sont sélectionnés
-    bool allParentsSelected = parents.difference(selectedSet).isEmpty && selectedSet.isNotEmpty;
-    bool allStudentsSelected = students.difference(selectedSet).isEmpty && selectedSet.isNotEmpty;
-
-    // Déterminer l'affichage du titre
-    String chatTitle = 'Chat avec ';
-
-    if (widget.isAdminSelected && widget.selectedUsers.isEmpty) {
-      chatTitle += 'Administration';
-    } else if (widget.isAdminSelected && widget.selectedUsers.isNotEmpty) {
-      chatTitle += 'Administration, ';
-    }
-
-    if (allParentsSelected) {
-      chatTitle += 'Parents';
-    } else if (allStudentsSelected) {
-      chatTitle += 'Étudiants';
-    } else {
-      chatTitle += widget.selectedUsers.join(", ");
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(
-          chatTitle,
-          style: const TextStyle(fontSize: 16),
-        ),
-        backgroundColor: Colors.blue.shade700,
-      ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color.fromARGB(255, 252, 252, 253), Color.fromARGB(255, 242, 243, 244)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+  Widget _buildConversationList() {
+    return ListView.builder(
+      itemCount: conversations.length,
+      itemBuilder: (context, index) {
+        final conversation = conversations[index];
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ListTile(
+            leading: const CircleAvatar(
+              backgroundColor: Colors.blue,
+              child: Icon(Icons.person, color: Colors.white),
+            ),
+            title: Text(conversation["name"], style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(conversation["lastMessage"], maxLines: 1, overflow: TextOverflow.ellipsis),
+            trailing: Text(conversation["time"], style: const TextStyle(color: Colors.grey)),
+            onTap: () {},
           ),
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: ListView.builder(
-                itemCount: messages.length,
-                itemBuilder: (context, index) {
-                  return Container(
-                    padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade800,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      messages[index],
-                      style: const TextStyle(color: Colors.white),
-                    ),
-                  );
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: messageController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
-                        hintText: 'Entrez votre message...',
-                        hintStyle: const TextStyle(color: Colors.white54),
-                        filled: true,
-                        fillColor: const Color.fromARGB(255, 138, 173, 214),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20.0),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.send, color: Color.fromARGB(255, 189, 109, 165)),
-                    onPressed: () {
-                      if (messageController.text.isNotEmpty) {
-                        setState(() {
-                          messages.add(messageController.text);
-                          messageController.clear();
-                        });
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
-}
-class UserSearchScreen extends StatefulWidget {
-  final List<String> users;
-  final String title;
 
-  const UserSearchScreen({super.key, required this.users, required this.title});
-
-  @override
-  UserSearchScreenState createState() => UserSearchScreenState();
-}
-
-class UserSearchScreenState extends State<UserSearchScreen> {
-  TextEditingController searchController = TextEditingController();
-  List<String> selectedUsers = [];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(widget.title), backgroundColor: Colors.blueAccent),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: TextField(
-              controller: searchController,
-              decoration: const InputDecoration(
-                labelText: 'Rechercher',
-                suffixIcon: Icon(Icons.search),
-              ),
-              onChanged: (value) {
-                setState(() {});
+  void _showNewMessageOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person, color: Colors.blue),
+              title: const Text("Élève"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.group, color: Colors.green),
+              title: const Text("Parent"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.business, color: Colors.red),
+              title: const Text("Administration"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.people, color: Colors.purple),
+              title: const Text("Conversation groupée"),
+              onTap: () {
+                Navigator.pop(context);
+                _showGroupChatSelection(context);
               },
             ),
-          ),
-          Expanded(
-            child: ListView(
-              children: widget.users
-                  .where((user) => user.toLowerCase().contains(searchController.text.toLowerCase()))
-                  .map((user) {
-                bool isSelected = selectedUsers.contains(user);
+          ],
+        );
+      },
+    );
+  }
 
-                return ListTile(
-                  title: Text(user),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Icône + qui change de couleur lorsqu'un utilisateur est sélectionné
-                      IconButton(
-                        icon: Icon(Icons.add_circle, color: isSelected ? Colors.purple : Colors.blue),
-                        onPressed: () {
-                          setState(() {
-                            if (!isSelected) {
-                              selectedUsers.add(user);
-                            }
-                          });
-                        },
-                      ),
-                      // Icône de suppression
-                      IconButton(
-                        icon: const Icon(Icons.remove_circle, color: Colors.red),
-                        onPressed: () {
-                          setState(() {
-                            selectedUsers.remove(user);
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
+  void _showGroupChatSelection(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return DefaultTabController(
+          length: 2,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const TabBar(
+                labelColor: Colors.blue,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: Colors.blue,
+                tabs: [
+                  Tab(text: "Élèves"),
+                  Tab(text: "Parents"),
+                ],
+              ),
+              SizedBox(
+                height: 300,
+                child: TabBarView(
+                  children: [
+                    _buildUserSelectionList("Élève", selectedEleves, _toggleSelectAllEleves, selectAllEleves),
+                    _buildUserSelectionList("Parent", selectedParents, _toggleSelectAllParents, selectAllParents),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text("Lancer la conversation"),
+                ),
+              ),
+            ],
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context, selectedUsers);
+        );
+      },
+    );
+  }
+
+  // Liste des utilisateurs avec possibilité de cocher/décocher
+  Widget _buildUserSelectionList(String type, List<bool> selectionList, Function toggleSelectAll, bool selectAll) {
+    return Column(
+      children: [
+        // Un seul bouton pour sélectionner ou désélectionner toutes les cases
+        ElevatedButton(
+          onPressed: () => toggleSelectAll(),
+          child: Text(selectAll ? "Désélectionner tout" : "Tout sélectionner"),
+        ),
+        Expanded(
+          child: ListView.builder(
+            itemCount: 10,
+            itemBuilder: (context, index) {
+              return CheckboxListTile(
+                title: Text("$type $index"),
+                value: selectionList[index],
+                onChanged: (bool? value) {
+                  setState(() {
+                    selectionList[index] = value ?? false;
+                  });
+                },
+              );
             },
-            child: const Text('Confirmer la sélection'),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

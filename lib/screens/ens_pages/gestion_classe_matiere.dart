@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '/services/matiere_service.dart';
 
 class GestionClassesMatieres extends StatefulWidget {
   const GestionClassesMatieres({super.key});
@@ -10,79 +8,64 @@ class GestionClassesMatieres extends StatefulWidget {
 }
 
 class GestionClassesMatieresState extends State<GestionClassesMatieres> {
-  String selectedClass = "GI";
-    late MatiereService matiereService;
-     @override
-    void didChangeDependencies() {
-      super.didChangeDependencies();
-      matiereService = Provider.of<MatiereService>(context, listen: false);
-    }
+  String selectedClass = "GI"; // Classe par défaut sélectionnée
+
+  // Stockage des matières et horaires
+  final Map<String, List<Map<String, String>>> classesData = {
+    "GI": [
+      {"matiere": "Programmation Mobile", "jour": "Lundi, Mercredi", "horaire": "08:00 - 10:00"},
+      {"matiere": "Base de Données", "jour": "Mardi, Jeudi", "horaire": "14:00 - 16:00"},
+      {"matiere": "Algorithmes", "jour": "Vendredi", "horaire": "10:00 - 12:00"},
+    ],
+    "ARI": [
+      {"matiere": "Administration Réseau", "jour": "Lundi, Jeudi", "horaire": "09:00 - 11:00"},
+      {"matiere": "Sécurité Informatique", "jour": "Mardi, Mercredi", "horaire": "13:00 - 15:00"},
+      {"matiere": "Virtualisation", "jour": "Vendredi", "horaire": "15:00 - 17:00"},
+    ],
+  };
+
+  // Contrôleurs pour le formulaire d’ajout
+  final TextEditingController _matiereController = TextEditingController();
+  final TextEditingController _jourController = TextEditingController();
+  final TextEditingController _horaireController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: const Color(0xFF082E4A),
       appBar: AppBar(
+        title: const Text("Gestion des Classes & Matières",
+        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
         backgroundColor: const Color(0xFF140C5F),
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text("Gestion des Classes & Matières",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: "inter Tight")
-        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.add, color: Colors.blue),
+            icon: const Icon(Icons.add),
             onPressed: () => _afficherFormulaireAjout(context),
           ),
         ],
       ),
       body: Column(
         children: [
-          _buildClassSelection(),
+          // Barre de sélection de classe
+          Container(
+            color: Colors.blue[50],
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildClassButton("GI"),
+                const SizedBox(width: 8),
+                _buildClassButton("ARI"),
+              ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          // Tableau des matières
           Expanded(
-            child: ListView.builder(
-              itemCount: matiereService.getMatieres(selectedClass).length,
-              itemBuilder: (context, index) {
-                final matiere = matiereService.getMatieres(selectedClass)[index];
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white, // Fond blanc
-                      borderRadius: BorderRadius.circular(12), // Bord arrondi
-                      boxShadow: [
-                        BoxShadow(
-                          // ignore: deprecated_member_use
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 4,
-                          spreadRadius: 2,
-                          offset: const Offset(2, 2), // Ombre légère
-                        ),
-                      ],
-                    ),
-                    child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                      title: Text(
-                        matiere['matiere'] ?? "Nom inconnu",
-                        style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-                      ),
-                      subtitle: Text(
-                        "Jours : ${matiere['jours']} | Horaire : ${matiere['horaire']}",
-                        style: const TextStyle(color: Colors.grey),
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete, color: Colors.red),
-                        onPressed: () {
-                          Provider.of<MatiereService>(context, listen: false)
-                          .supprimerMatiere(selectedClass, matiere['matiere']);
-
-                          setState(() {});
-                        },
-                      ),
-                    ),
-                  ),
-                );
-              },
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: _buildDataTable(),
             ),
           ),
         ],
@@ -90,88 +73,7 @@ class GestionClassesMatieresState extends State<GestionClassesMatieres> {
     );
   }
 
-    Widget _buildClassSelection() {
-    return Container(
-      color: Colors.blue[50],
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildClassButton("GI"),
-          const SizedBox(width: 8),
-          _buildClassButton("ARI"),
-        ],
-      ),
-    );
-  }
-
-void _afficherFormulaireAjout(BuildContext context) {
-  TextEditingController matiereController = TextEditingController();
-  TextEditingController coefficientController = TextEditingController();
-  TextEditingController joursController = TextEditingController();
-  TextEditingController horaireController = TextEditingController();
-
-  showDialog(
-    context: context,
-    builder: (context) {
-      return AlertDialog(
-        title: const Text("Ajouter une matière"),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: matiereController,
-                decoration: const InputDecoration(labelText: "Nom de la matière"),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: coefficientController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(labelText: "Coefficient"),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: joursController,
-                decoration: const InputDecoration(labelText: "Jours d'enseignement (ex: Lundi, Mercredi)"),
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                controller: horaireController,
-                decoration: const InputDecoration(labelText: "Horaire (ex: 08:00 - 10:00)"),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Annuler"),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (matiereController.text.isNotEmpty &&
-                  coefficientController.text.isNotEmpty &&
-                  joursController.text.isNotEmpty &&
-                  horaireController.text.isNotEmpty) {
-                Provider.of<MatiereService>(context, listen: false).ajouterMatiere(selectedClass, {
-                  'matiere': matiereController.text,
-                  'coefficient': int.tryParse(coefficientController.text) ?? 1, // Par défaut, coefficient = 1
-                  'jours': joursController.text,
-                  'horaire': horaireController.text,
-                });
-                setState(() {});
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Ajouter"),
-          ),
-        ],
-      );
-    },
-  );
-}
-
+  /// **Boutons de sélection de classe**
   Widget _buildClassButton(String className) {
     return ElevatedButton(
       onPressed: () {
@@ -188,5 +90,146 @@ void _afficherFormulaireAjout(BuildContext context) {
       ),
       child: Text(className),
     );
+  }
+
+
+  
+
+
+  /// **Table des matières**
+  Widget _buildDataTable() {
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 5,
+              spreadRadius: 2,
+            )
+          ],
+        ),
+        padding: const EdgeInsets.all(8),
+      child: DataTable(
+        border: TableBorder.all(
+          color: Colors.blue[200]!,
+          borderRadius: BorderRadius.circular(12),
+          width: 1,
+        ),
+        columnSpacing: 20,
+        dataRowColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> states) => Colors.white,
+        ),
+        headingRowColor: WidgetStateProperty.resolveWith<Color?>(
+          (Set<WidgetState> states) => Colors.blue[200],
+        ),
+        columns: const [
+          DataColumn(
+            label: Text("Matière", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          DataColumn(
+            label: Text("Jour", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          DataColumn(
+            label: Text("Horaire", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+          DataColumn(
+            label: Text("Action", style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+        rows: classesData[selectedClass]!.map((matiere) {
+          return DataRow(
+            cells: [
+              DataCell(Text(matiere["matiere"]!)),
+              DataCell(Text(matiere["jour"]!)),
+              DataCell(Text(matiere["horaire"]!)),
+              DataCell(
+                IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _supprimerMatiere(matiere),
+                ),
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+      ),
+    );
+  }
+
+  //Afficher le formulaire d'ajout de matière
+  void _afficherFormulaireAjout(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Ajouter une matière"),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _matiereController,
+                decoration: const InputDecoration(labelText: "Nom de la matière"),
+              ),
+              TextField(
+                controller: _jourController,
+                decoration: const InputDecoration(labelText: "Jours d'enseignement"),
+              ),
+              TextField(
+                controller: _horaireController,
+                decoration: const InputDecoration(labelText: "Horaire"),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                _matiereController.clear();
+                _jourController.clear();
+                _horaireController.clear();
+                Navigator.pop(context);
+              },
+              child: const Text("Annuler"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                _ajouterMatiere();
+                Navigator.pop(context);
+              },
+              child: const Text("Ajouter"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// **Ajouter une matière**
+  void _ajouterMatiere() {
+    if (_matiereController.text.isEmpty || _jourController.text.isEmpty || _horaireController.text.isEmpty) {
+      return;
+    }
+
+    setState(() {
+      classesData[selectedClass]!.add({
+        "matiere": _matiereController.text,
+        "jour": _jourController.text,
+        "horaire": _horaireController.text,
+      });
+    });
+
+    _matiereController.clear();
+    _jourController.clear();
+    _horaireController.clear();
+  }
+
+  /// **Supprimer une matière**
+  void _supprimerMatiere(Map<String, String> matiere) {
+    setState(() {
+      classesData[selectedClass]!.remove(matiere);
+    });
   }
 }
