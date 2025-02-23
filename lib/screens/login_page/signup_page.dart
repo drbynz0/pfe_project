@@ -20,6 +20,7 @@ class SignupPageState extends State<SignupPage> {
   bool _isVerified = false;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
+  bool _isLoading = false;
 
   void _verifyIdentifier() async {
     String identifier = _identifierController.text.trim();
@@ -45,6 +46,10 @@ class SignupPageState extends State<SignupPage> {
       _showErrorDialog("Les mots de passe ne correspondent pas");
       return;
     }
+
+    setState(() {
+      _isLoading = true;
+    });
 
     try {
       UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
@@ -75,6 +80,10 @@ class SignupPageState extends State<SignupPage> {
       _showSuccessDialog("Compte créé ! Un email de confirmation a été envoyé.", true);
     } catch (e) {
       _showErrorDialog("Erreur : ${e.toString()}");
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
 
@@ -311,24 +320,26 @@ class SignupPageState extends State<SignupPage> {
                               ),
                             ),
                             const SizedBox(height: 20),
-                            ElevatedButton(
-                              onPressed: _createAccount,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF4B2DFD),
-                                minimumSize: const Size(double.infinity, 50),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                              ),
-                              child: const Text(
-                                "Créer un compte",
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
+                            _isLoading
+                                ? const CircularProgressIndicator()
+                                : ElevatedButton(
+                                    onPressed: _createAccount,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF4B2DFD),
+                                      minimumSize: const Size(double.infinity, 50),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      "Créer un compte",
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
                           ],
                         ],
                       ),
