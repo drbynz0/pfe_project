@@ -4,9 +4,11 @@ import 'notes_page.dart';
 import 'messages_page.dart';
 import 'settings.dart';
 import '/widgets/custom_card.dart';
-//hiba
+import 'package:firebase_auth/firebase_auth.dart';
+
 class TeacherHomePage extends StatefulWidget {
-      const TeacherHomePage({super.key});
+  const TeacherHomePage({super.key});
+
   @override
   TeacherHomePageState createState() => TeacherHomePageState();
 }
@@ -29,6 +31,8 @@ class TeacherHomePageState extends State<TeacherHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final String? teacherId = FirebaseAuth.instance.currentUser?.uid;
+
     return Scaffold(
       backgroundColor: const Color(0xFF082E4A),
       appBar: AppBar(
@@ -48,7 +52,11 @@ class TeacherHomePageState extends State<TeacherHomePage> {
             onSelected: (value) {
               if (value == 'profile') {
                 // Rediriger vers la page de profil
-                Navigator.pushNamed(context, '/profile');
+                Navigator.pushNamed(
+                  context,
+                  '/profile',
+                  arguments: {'teacherId': teacherId}, // Utilisez teacherId ici
+                );
               } else if (value == 'logout') {
                 AuthService.logout(context);
               }
@@ -64,7 +72,6 @@ class TeacherHomePageState extends State<TeacherHomePage> {
               ),
             ],
           ),
-        
         ],
       ),
       body: _pages[_selectedIndex],
@@ -100,14 +107,13 @@ class TeacherHomePageState extends State<TeacherHomePage> {
 
 class TeacherHomePageContent extends StatelessWidget {
   const TeacherHomePageContent({super.key});
-  
+
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: const [
         CustomCard(
-          
           columns: [
             DataColumn(label: Text("Classe")),
             DataColumn(label: Text("Nombre de matières")),
@@ -129,7 +135,7 @@ class TeacherHomePageContent extends StatelessWidget {
           tileColor: Color.fromARGB(0, 255, 255, 255),
           headerColor: Colors.pinkAccent,
         ),
-         SizedBox(height: 16),
+        SizedBox(height: 16),
         CustomCard(
           columns: [
             DataColumn(label: Text("Classe")),
@@ -152,7 +158,7 @@ class TeacherHomePageContent extends StatelessWidget {
           tileColor: Color.fromARGB(0, 255, 255, 255),
           headerColor: Colors.lightBlueAccent,
         ),
-         SizedBox(height: 16),
+        SizedBox(height: 16),
         CustomCard(
           title: "Gestion des bulletins",
           subtitle: "Bulletin des élèves",

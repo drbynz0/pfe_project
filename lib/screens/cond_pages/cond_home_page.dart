@@ -1,6 +1,7 @@
 // lib/screens/cond_pages/cond_home_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:p_f_e_project/screens/cond_pages/suivi_bus.dart';
 import 'package:p_f_e_project/services/auth_service.dart';
 import 'messages_page.dart';
 import '/screens/cond_pages/settings.dart';
@@ -15,7 +16,7 @@ class CondHomePageState extends State<CondHomePage> {
   final List<Widget> _pages = [
     const HomeScreen(),
       const MessagesConducteurPage(),
-    const SuiviBusPage(),
+    SuiviBusPage(),
     const SettingsPage(),
   ];
 
@@ -133,20 +134,6 @@ class HomeScreen extends StatelessWidget {
     return const Center(
       child: Text(
         'Bienvenue Conducteur',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-}
-
-// lib/screens/cond_pages/suivi_bus.dart
-class SuiviBusPage extends StatelessWidget {
-    const SuiviBusPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        'Suivi des Bus',
         style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
       ),
     );
