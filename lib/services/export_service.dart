@@ -33,9 +33,11 @@ class ExportService {
       final file = File("${output.path}/notes.pdf");
       await file.writeAsBytes(await pdf.save());
 
+      // ignore: use_build_context_synchronously
       DialogService.showDialogMessage(context, "Succès", "PDF exporté avec succès !");
     } catch (e) {
       logger.e("Erreur lors de l'exportation en PDF: $e");
+      // ignore: use_build_context_synchronously
       DialogService.showDialogMessage(context, "Erreur", "Échec de l'exportation en PDF.");
     }
   }
@@ -64,9 +66,11 @@ class ExportService {
       final file = File("${output.path}/notes.xlsx");
       await file.writeAsBytes(excel.encode()!);
 
+      // ignore: use_build_context_synchronously
       DialogService.showDialogMessage(context, "Succès", "Excel exporté avec succès !");
     } catch (e) {
       logger.e("Erreur lors de l'exportation en Excel: $e");
+      // ignore: use_build_context_synchronously
       DialogService.showDialogMessage(context, "Erreur", "Échec de l'exportation en Excel.");
     }
   }

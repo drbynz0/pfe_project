@@ -52,6 +52,7 @@ class MessagesConducteurPageState extends State<MessagesConducteurPage> {
           labelText: "Rechercher une conversation",
           prefixIcon: const Icon(Icons.search, color: Colors.white),
           filled: true,
+          // ignore: deprecated_member_use
           fillColor: Colors.white.withOpacity(0.2),
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
         ),

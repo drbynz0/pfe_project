@@ -7,11 +7,11 @@ class SuiviBusPage extends StatefulWidget {
   const SuiviBusPage({super.key});
 
   @override
-  _SuiviBusPageState createState() => _SuiviBusPageState();
+  SuiviBusPageState createState() => SuiviBusPageState();
 }
 
-class _SuiviBusPageState extends State<SuiviBusPage> {
-  Location _location = Location();
+class SuiviBusPageState extends State<SuiviBusPage> {
+  final Location _location = Location();
   LatLng _busPosition = const LatLng(37.7749, -122.4194); // Position initiale fictive
   bool _isTripStarted = false;
 
