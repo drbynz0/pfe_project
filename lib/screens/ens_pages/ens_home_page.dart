@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '/services/auth_service.dart';
 import 'notes_page.dart';
 import 'messages_page.dart';
 import 'settings.dart';
 import '/widgets/custom_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '/providers/locale_provider.dart';
+import '/generated/l10n.dart';
 
 class TeacherHomePage extends StatefulWidget {
   const TeacherHomePage({super.key});
@@ -16,12 +19,20 @@ class TeacherHomePage extends StatefulWidget {
 class TeacherHomePageState extends State<TeacherHomePage> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = [
-    const TeacherHomePageContent(),
-    const NotesPage(),
-    const MessagesPage(),
-    const SettingsPage(),
-  ];
+  final List<Widget> _pages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _pages.addAll([
+      const TeacherHomePageContent(),
+      const NotesPage(),
+      const MessagesPage(),
+      SettingsPage(onLocaleChange: (locale) {
+        Provider.of<LocaleProvider>(context, listen: false).setLocale(locale);
+      }),
+    ]);
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -36,9 +47,9 @@ class TeacherHomePageState extends State<TeacherHomePage> {
     return Scaffold(
       backgroundColor: const Color(0xFF082E4A),
       appBar: AppBar(
-        title: const Text(
-          'School App',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Inter Tight'),
+        title: Text(
+          S.of(context).appTitle, // Utilisez les traductions ici
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Inter Tight'),
         ),
         backgroundColor: const Color(0xFF140C5F),
         actions: [
@@ -62,13 +73,13 @@ class TeacherHomePageState extends State<TeacherHomePage> {
               }
             },
             itemBuilder: (context) => [
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'profile',
-                child: Text('Voir profil'),
+                child: Text(S.of(context).profile), // Utilisez les traductions ici
               ),
-              const PopupMenuItem(
+              PopupMenuItem(
                 value: 'logout',
-                child: Text('Déconnexion'),
+                child: Text(S.of(context).logout), // Utilisez les traductions ici
               ),
             ],
           ),
@@ -78,22 +89,22 @@ class TeacherHomePageState extends State<TeacherHomePage> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
-        items: const [
+        items: [
           BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: 'Home',
+            icon: const Icon(Icons.home),
+            label: S.of(context).home, // Utilisez les traductions ici
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.note),
-            label: 'Notes',
+            icon: const Icon(Icons.note),
+            label: S.of(context).notes, // Utilisez les traductions ici
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.message),
-            label: 'Messages',
+            icon: const Icon(Icons.message),
+            label: S.of(context).messages, // Utilisez les traductions ici
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
+            icon: const Icon(Icons.settings),
+            label: S.of(context).settings, // Utilisez les traductions ici
           ),
         ],
         type: BottomNavigationBarType.fixed,
@@ -112,13 +123,13 @@ class TeacherHomePageContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(16),
-      children: const [
+      children: [
         CustomCard(
           columns: [
-            DataColumn(label: Text("Classe")),
-            DataColumn(label: Text("Nombre de matières")),
+            DataColumn(label: Text(S.of(context).classLabel)), // Utilisez les traductions ici
+            DataColumn(label: Text(S.of(context).numberOfSubjects)), // Utilisez les traductions ici
           ],
-          rows: [
+          rows: const [
             DataRow(cells: [
               DataCell(Text("GI")),
               DataCell(Text("5")),
@@ -128,20 +139,20 @@ class TeacherHomePageContent extends StatelessWidget {
               DataCell(Text("4")),
             ]),
           ],
-          title: "Gestion des classes et de matières",
-          subtitle: "Affectation aux matières et classes",
+          title: S.of(context).classManagement, // Utilisez les traductions ici
+          subtitle: S.of(context).classAndStudentManagement, // Utilisez les traductions ici
           icon: Icons.arrow_forward,
           color: Colors.pinkAccent,
-          tileColor: Color.fromARGB(0, 255, 255, 255),
+          tileColor: const Color.fromARGB(0, 255, 255, 255),
           headerColor: Colors.pinkAccent,
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
         CustomCard(
           columns: [
-            DataColumn(label: Text("Classe")),
-            DataColumn(label: Text("Nombre d'élèves")),
+            DataColumn(label: Text(S.of(context).classLabel)), // Utilisez les traductions ici
+            DataColumn(label: Text(S.of(context).numberOfStudents)), // Utilisez les traductions ici
           ],
-          rows: [
+          rows: const [
             DataRow(cells: [
               DataCell(Text("GI")),
               DataCell(Text("25")),
@@ -151,20 +162,20 @@ class TeacherHomePageContent extends StatelessWidget {
               DataCell(Text("30")),
             ]),
           ],
-          title: "Gestion des classes et des élèves",
-          subtitle: "Liste des élèves par classe",
+          title: S.of(context).classAndStudentManagement, // Utilisez les traductions ici
+          subtitle: S.of(context).studentListByClass, // Utilisez les traductions ici
           icon: Icons.arrow_forward,
           color: Colors.lightBlueAccent,
-          tileColor: Color.fromARGB(0, 255, 255, 255),
+          tileColor: const Color.fromARGB(0, 255, 255, 255),
           headerColor: Colors.lightBlueAccent,
         ),
-        SizedBox(height: 16),
+        const SizedBox(height: 16),
         CustomCard(
-          title: "Gestion des bulletins",
-          subtitle: "Bulletin des élèves",
+          title: S.of(context).bulletinManagement, // Utilisez les traductions ici
+          subtitle: S.of(context).studentBulletin, // Utilisez les traductions ici
           icon: Icons.arrow_forward,
           color: Colors.orangeAccent,
-          tileColor: Color.fromARGB(1, 25, 139, 201),
+          tileColor: const Color.fromARGB(1, 25, 139, 201),
           headerColor: Colors.orangeAccent,
           columns: null,
           rows: null,

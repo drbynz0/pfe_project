@@ -70,9 +70,11 @@ class SignupPageState extends State<SignupPage> {
         String nom = userDoc.data()?['nom'];
         String prenom = userDoc.data()?['prenom'];
         String email = userDoc.data()?['email'];
+        String dateNaissance = userDoc.data()?['date_naissance'];
+        String lieuNaissance = userDoc.data()?['lieu_naissance'];
 
         TeacherService teacherService = TeacherService();
-        await teacherService.addTeacher(identifier, nom, prenom, email);
+        await teacherService.addTeacher(identifier, nom, prenom, email, dateNaissance, lieuNaissance);
       }
 
       await userCredential.user!.sendEmailVerification();

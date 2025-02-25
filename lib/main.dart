@@ -1,15 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:p_f_e_project/screens/login_page/signup_page.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'generated/l10n.dart';
 import 'firebase_options.dart';
 import '/screens/ens_pages/profile_page.dart';
 import '/screens/login_page/login_page.dart';
 import '/screens/login_page/reset_password.dart';
+import '/screens/login_page/signup_page.dart';
 import 'screens/ens_pages/ens_home_page.dart';
 import 'screens/etudiant_pages/etud_home_page.dart';
 import 'screens/cond_pages/cond_home_page.dart';
 import '/services/matiere_service.dart';
+import '/screens/ens_pages/settings.dart';
+import '/providers/locale_provider.dart';
+import '/providers/theme_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +25,8 @@ void main() async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => MatiereService()),
+        ChangeNotifierProvider(create: (context) => LocaleProvider()..loadLocale()),
+        ChangeNotifierProvider(create: (context) => ThemeProvider()..loadTheme()),
       ],
       child: const MyApp(),
     ),
@@ -31,14 +38,21 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final localeProvider = Provider.of<LocaleProvider>(context);
+    final themeProvider = Provider.of<ThemeProvider>(context);
+
     return MaterialApp(
-      theme: ThemeData(
-        bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-          backgroundColor: Color.fromARGB(255, 31, 34, 72),
-          selectedItemColor: Color.fromARGB(255, 45, 123, 220),
-          unselectedItemColor: Color.fromARGB(255, 87, 99, 108),
-        ),
-      ),
+      locale: localeProvider.locale,
+      supportedLocales: S.delegate.supportedLocales,
+      localizationsDelegates: const [
+        S.delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      theme: ThemeData.light(),
+      darkTheme: ThemeData.dark(),
+      themeMode: themeProvider.themeMode,
       debugShowCheckedModeBanner: false,
       initialRoute: '/login',
       routes: {
@@ -47,7 +61,10 @@ class MyApp extends StatelessWidget {
         '/homeEtud': (context) => const EtudiantHomePage(),
         '/homeCond': (context) => const CondHomePage(),
         '/signup': (context) => const SignupPage(),
-        '/resetPwd': (context) => const ResetPasswordPage()
+        '/resetPwd': (context) => const ResetPasswordPage(),
+        '/settings': (context) => SettingsPage(
+          onLocaleChange: (locale) => localeProvider.setLocale(locale),
+        ),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/profile') {
