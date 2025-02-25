@@ -169,16 +169,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.6"
-<<<<<<< HEAD
-  dart_style:
-    dependency: transitive
-    description:
-      name: dart_style
-      sha256: "27eb0ae77836989a3bc541ce55595e8ceee0992807f14511552a898ddd0d88ac"
-      url: "https://pub.dev"
-    source: hosted
-    version: "3.0.1"
-=======
   csslib:
     dependency: transitive
     description:
@@ -195,7 +185,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.0"
->>>>>>> 24d7a10f6360797eb97cdd0325c42fa01432da89
+  dart_style:
+    dependency: transitive
+    description:
+      name: dart_style
+      sha256: "27eb0ae77836989a3bc541ce55595e8ceee0992807f14511552a898ddd0d88ac"
+      url: "https://pub.dev"
+    source: hosted
+    version: "3.0.1"
   desktop_webview_auth:
     dependency: transitive
     description:
@@ -1084,8 +1081,7 @@ packages:
       sha256: "054cedf68706bb142839ba0ae6b135f6b68039f0b8301cbe8784ae653d5ff8de"
       url: "https://pub.dev"
     source: hosted
-<<<<<<< HEAD
-    version: "3.6.1"
+    version: "3.7.0"
   translator:
     dependency: "direct main"
     description:
@@ -1094,9 +1090,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.0.3+1"
-=======
-    version: "3.7.0"
->>>>>>> 24d7a10f6360797eb97cdd0325c42fa01432da89
   typed_data:
     dependency: transitive
     description:

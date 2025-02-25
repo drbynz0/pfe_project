@@ -12,7 +12,6 @@ import 'screens/ens_pages/ens_home_page.dart';
 import 'screens/etudiant_pages/etud_home_page.dart';
 import 'screens/cond_pages/cond_home_page.dart';
 import '/services/matiere_service.dart';
-import '/screens/ens_pages/settings.dart';
 import '/providers/locale_provider.dart';
 import '/providers/theme_provider.dart';
 
@@ -62,9 +61,6 @@ class MyApp extends StatelessWidget {
         '/homeCond': (context) => const CondHomePage(),
         '/signup': (context) => const SignupPage(),
         '/resetPwd': (context) => const ResetPasswordPage(),
-        '/settings': (context) => SettingsPage(
-          onLocaleChange: (locale) => localeProvider.setLocale(locale),
-        ),
       },
       onGenerateRoute: (settings) {
         if (settings.name == '/profile') {

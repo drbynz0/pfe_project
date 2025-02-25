@@ -294,8 +294,6 @@ class S {
   String get about {
     return Intl.message('About', name: 'about', desc: '', args: []);
   }
-
-  String get noClassesFoundMessage => 'No classes found';
 }
 
 class AppLocalizationDelegate extends LocalizationsDelegate<S> {

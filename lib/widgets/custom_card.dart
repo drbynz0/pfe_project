@@ -81,14 +81,14 @@ class CustomCard extends StatelessWidget {
                       builder: (context) => const GestionClassesMatieres(),
                     ),
                   );
-                  } else if (title == "Gestion des classes et des élèves") {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const GestionClassesEleves(),
-                      ),
-                    );
-                  }
+                } else if (title == "Gestion des classes et des élèves") {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const GestionClassesEleves(),
+                    ),
+                  );
+                }
               },
             ),
           ),

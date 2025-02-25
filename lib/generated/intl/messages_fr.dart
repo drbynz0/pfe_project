@@ -38,7 +38,7 @@ class MessageLookup extends MessageLookupByLibrary {
     ),
     "classLabel": MessageLookupByLibrary.simpleMessage("Classe"),
     "classManagement": MessageLookupByLibrary.simpleMessage(
-      "Gestion des classes",
+      "Gestion des classes et de matières",
     ),
     "darkMode": MessageLookupByLibrary.simpleMessage("Mode sombre"),
     "displayAndAccessibility": MessageLookupByLibrary.simpleMessage(
@@ -69,7 +69,7 @@ class MessageLookup extends MessageLookupByLibrary {
     "privacyPolicy": MessageLookupByLibrary.simpleMessage(
       "Politique de confidentialité",
     ),
-    "profile": MessageLookupByLibrary.simpleMessage("Modifier le profil"),
+    "profile": MessageLookupByLibrary.simpleMessage("Voir  le profil"),
     "profileAndAccount": MessageLookupByLibrary.simpleMessage(
       "Profil & Compte",
     ),
