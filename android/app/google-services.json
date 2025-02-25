@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "633918911980",
+    "project_id": "pfe-project-61a90",
+    "storage_bucket": "pfe-project-61a90.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:633918911980:android:17a86114914a66a0303cc9",
+        "android_client_info": {
+          "package_name": "com.appschool.pfe_project"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBhU6_2eMqpO2vg0XTQy_9DRmc37yYj1V0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

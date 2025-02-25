@@ -1,13 +1,34 @@
 import 'package:flutter/material.dart';
-import '/utils/profile_page.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:p_f_e_project/screens/login_page/signup_page.dart';
+import 'package:provider/provider.dart';
+import 'firebase_options.dart';
+import '/screens/ens_pages/profile_page.dart';
 import '/screens/login_page/login_page.dart';
+import '/screens/login_page/reset_password.dart';
 import 'screens/ens_pages/ens_home_page.dart';
 import 'screens/etudiant_pages/etud_home_page.dart';
 import 'screens/cond_pages/cond_home_page.dart';
-void main() => runApp(const MyApp());
+import '/services/matiere_service.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => MatiereService()),
+      ],
+      child: const MyApp(),
+    ),
+  );
+}
 
 class MyApp extends StatelessWidget {
-    const MyApp({super.key});
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -24,8 +45,20 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginPage(),
         '/homeEns': (context) => const TeacherHomePage(),
         '/homeEtud': (context) => const EtudiantHomePage(),
-        '/homeCond':(context) =>  const CondHomePage(),
-        '/profile': (context) => const ProfilePage(),
+        '/homeCond': (context) => const CondHomePage(),
+        '/signup': (context) => const SignupPage(),
+        '/resetPwd': (context) => const ResetPasswordPage()
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == '/profile') {
+          final args = settings.arguments as Map<String, dynamic>;
+          return MaterialPageRoute(
+            builder: (context) {
+              return ProfilePage(teacherId: args['teacherId']);
+            },
+          );
+        }
+        return null;
       },
     );
   }
