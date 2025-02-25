@@ -1,19 +1,17 @@
-
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
-import 'package:firebase_core/firebase_core.dart';
 
 class SuiviBusPage extends StatefulWidget {
   const SuiviBusPage({super.key});
 
   @override
-  _SuiviBusPageState createState() => _SuiviBusPageState();
+  SuiviBusPageState createState() => SuiviBusPageState();
 }
 
-class _SuiviBusPageState extends State<SuiviBusPage> {
-  GoogleMapController? _mapController;
-  Location _location = Location();
+class SuiviBusPageState extends State<SuiviBusPage> {
+  final Location _location = Location();
   LatLng _busPosition = const LatLng(37.7749, -122.4194); // Position initiale fictive
   bool _isTripStarted = false;
 
@@ -34,7 +32,6 @@ class _SuiviBusPageState extends State<SuiviBusPage> {
         setState(() {
           _busPosition = LatLng(locationData.latitude!, locationData.longitude!);
         });
-        _mapController?.animateCamera(CameraUpdate.newLatLng(_busPosition));
       });
     }
   }
@@ -48,21 +45,31 @@ class _SuiviBusPageState extends State<SuiviBusPage> {
       ),
       body: Stack(
         children: [
-          GoogleMap(
-            initialCameraPosition: CameraPosition(
-              target: _busPosition,
-              zoom: 14.0,
-            ),
-            markers: {
-              Marker(
-                markerId: const MarkerId("bus"),
-                position: _busPosition,
-                infoWindow: const InfoWindow(title: "Bus Scolaire"),
+          FlutterMap(
+            mapController: MapController(), // Ajout du contrôleur
+            options: const MapOptions(),
+            children: [
+              TileLayer(
+                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                subdomains: ['a', 'b', 'c'],
               ),
-            },
-            onMapCreated: (GoogleMapController controller) {
-              _mapController = controller;
-            },
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: _busPosition,
+                    width: 80.0,
+                    height: 80.0,
+                    alignment: Alignment.center, // Ajouté pour éviter les erreurs
+                    rotate: true, // Indispensable dans Flutter Map 8.0.0
+                    child: const Icon(
+                      Icons.directions_bus,
+                      color: Colors.red,
+                      size: 40,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
           Positioned(
             bottom: 20,
@@ -74,7 +81,7 @@ class _SuiviBusPageState extends State<SuiviBusPage> {
                 backgroundColor: _isTripStarted ? Colors.red : Colors.green,
                 padding: const EdgeInsets.symmetric(vertical: 15),
               ),
-              child: Text(_isTripStarted ? "Arrêter le trajet" : "Démarrer le trajet"),
+              child: Text(_isTripStarted ? "Arrêter le trajet" : "Démarrer le trajet"),
             ),
           ),
         ],
