@@ -6,6 +6,7 @@ import 'screens/ens_pages/ens_home_page.dart';
 import 'screens/etudiant_pages/etud_home_page.dart';
 import 'screens/cond_pages/cond_home_page.dart';
 import '/services/matiere_service.dart';
+import 'screens/parent_pages/parent_home_page.dart';
 
 void main() {
   runApp(
@@ -36,6 +37,7 @@ class MyApp extends StatelessWidget {
         '/homeEns': (context) => const TeacherHomePage(),
         '/homeEtud': (context) => const EtudiantHomePage(),
         '/homeCond':(context) =>  const CondHomePage(),
+        '/homePar':(context) =>  const ParentHomePage(),
         '/profile': (context) => const ProfilePage(),
       },
     );

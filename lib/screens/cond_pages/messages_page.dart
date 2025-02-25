@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 
 class MessagesPage extends StatefulWidget {
+ const MessagesPage({super.key});
   @override
-  _MessagesPageState createState() => _MessagesPageState();
+  MessagesPageState createState() => MessagesPageState();
 }
 
-class _MessagesPageState extends State<MessagesPage> {
+class MessagesPageState extends State<MessagesPage> {
   bool isAdminSelected = false;
   bool isParentsSelected = false;
   bool isStudentsSelected = false;
@@ -18,13 +19,13 @@ class _MessagesPageState extends State<MessagesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Sélectionnez des utilisateurs'),
+        title:const Text('Sélectionnez des utilisateurs'),
         backgroundColor: Colors.blue.shade700,
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration:const BoxDecoration(
           gradient: LinearGradient(
-            colors: [const Color.fromARGB(255, 103, 137, 188), const Color.fromARGB(255, 139, 114, 141)],
+            colors: [ Color.fromARGB(255, 103, 137, 188),  Color.fromARGB(255, 139, 114, 141)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -33,7 +34,7 @@ class _MessagesPageState extends State<MessagesPage> {
           children: [
             // Administration
             ListTile(
-              title: Text('Administration', style: TextStyle(color: Colors.white)),
+              title:const Text('Administration', style: TextStyle(color: Colors.white)),
               trailing: Icon(
                 isAdminSelected ? Icons.check_circle : Icons.radio_button_unchecked,
                 color: Colors.white,
@@ -52,7 +53,7 @@ class _MessagesPageState extends State<MessagesPage> {
             ),
             // Parents
             ListTile(
-              title: Text('Parents', style: TextStyle(color: Colors.white)),
+              title:const Text('Parents', style: TextStyle(color: Colors.white)),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -74,7 +75,7 @@ class _MessagesPageState extends State<MessagesPage> {
 },
                   ),
                   IconButton(
-                    icon: Icon(Icons.search, color: Colors.white),
+                    icon:const Icon(Icons.search, color: Colors.white),
                     onPressed: () async {
                       final selected = await Navigator.push(
                         context,
@@ -96,7 +97,7 @@ class _MessagesPageState extends State<MessagesPage> {
             ),
             // Étudiants
             ListTile(
-              title: Text('Étudiants', style: TextStyle(color: Colors.white)),
+              title:const Text('Étudiants', style: TextStyle(color: Colors.white)),
               trailing: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -118,7 +119,7 @@ class _MessagesPageState extends State<MessagesPage> {
 },
                   ),
                   IconButton(
-                    icon: Icon(Icons.search, color: Colors.white),
+                    icon:const Icon(Icons.search, color: Colors.white),
                     onPressed: () async {
                       final selected = await Navigator.push(
                         context,
@@ -162,7 +163,7 @@ class _MessagesPageState extends State<MessagesPage> {
           );
         }
       : null,
-  child: Text('Commencer le chat'),
+  child:const Text('Commencer le chat'),
 ),
           ],
         ),
@@ -176,13 +177,14 @@ class ChatScreen extends StatefulWidget {
   final List<String> selectedUsers;
   final bool isAdminSelected;
 
-  ChatScreen({required this.selectedUsers, required this.isAdminSelected});
+  const ChatScreen({super.key, required this.selectedUsers, required this.isAdminSelected});
 
   @override
-  _ChatScreenState createState() => _ChatScreenState();
+  
+  ChatScreenState createState() => ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class ChatScreenState extends State<ChatScreen> {
   List<String> messages = [];
   TextEditingController messageController = TextEditingController();
 
@@ -220,14 +222,14 @@ class _ChatScreenState extends State<ChatScreen> {
       appBar: AppBar(
         title: Text(
           chatTitle,
-          style: TextStyle(fontSize: 16),
+          style:const TextStyle(fontSize: 16),
         ),
         backgroundColor: Colors.blue.shade700,
       ),
       body: Container(
-        decoration: BoxDecoration(
+        decoration:const BoxDecoration(
           gradient: LinearGradient(
-            colors: [const Color.fromARGB(255, 252, 252, 253), const Color.fromARGB(255, 242, 243, 244)],
+            colors: [ Color.fromARGB(255, 252, 252, 253),  Color.fromARGB(255, 242, 243, 244)],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -239,15 +241,15 @@ class _ChatScreenState extends State<ChatScreen> {
                 itemCount: messages.length,
                 itemBuilder: (context, index) {
                   return Container(
-                    padding: EdgeInsets.all(10),
-                    margin: EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+                    padding:const EdgeInsets.all(10),
+                    margin:const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
                     decoration: BoxDecoration(
                       color: Colors.blue.shade800,
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
                       messages[index],
-                      style: TextStyle(color: Colors.white),
+                      style:const TextStyle(color: Colors.white),
                     ),
                   );
                 },
@@ -260,10 +262,10 @@ class _ChatScreenState extends State<ChatScreen> {
                   Expanded(
                     child: TextField(
                       controller: messageController,
-                      style: TextStyle(color: Colors.white),
+                      style:const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         hintText: 'Entrez votre message...',
-                        hintStyle: TextStyle(color: Colors.white54),
+                        hintStyle:const TextStyle(color: Colors.white54),
                         filled: true,
                         fillColor: const Color.fromARGB(255, 138, 173, 214),
                         border: OutlineInputBorder(
@@ -274,7 +276,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: Icon(Icons.send, color: const Color.fromARGB(255, 189, 109, 165)),
+                    icon:const Icon(Icons.send, color:  Color.fromARGB(255, 189, 109, 165)),
                     onPressed: () {
                       if (messageController.text.isNotEmpty) {
                         setState(() {
@@ -296,14 +298,13 @@ class _ChatScreenState extends State<ChatScreen> {
 class UserSearchScreen extends StatefulWidget {
   final List<String> users;
   final String title;
-
-  UserSearchScreen({required this.users, required this.title});
+  const UserSearchScreen({super.key, required this.users, required this.title});
 
   @override
-  _UserSearchScreenState createState() => _UserSearchScreenState();
+  UserSearchScreenState createState() => UserSearchScreenState();
 }
 
-class _UserSearchScreenState extends State<UserSearchScreen> {
+class UserSearchScreenState extends State<UserSearchScreen> {
   TextEditingController searchController = TextEditingController();
   List<String> selectedUsers = [];
 
@@ -317,7 +318,7 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
             padding: const EdgeInsets.all(8.0),
             child: TextField(
               controller: searchController,
-              decoration: InputDecoration(
+              decoration:const InputDecoration(
                 labelText: 'Rechercher',
                 suffixIcon: Icon(Icons.search),
               ),
@@ -351,7 +352,7 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
                       ),
                       // Icône de suppression
                       IconButton(
-                        icon: Icon(Icons.remove_circle, color: Colors.red),
+                        icon:const Icon(Icons.remove_circle, color: Colors.red),
                         onPressed: () {
                           setState(() {
                             selectedUsers.remove(user);
@@ -368,7 +369,7 @@ class _UserSearchScreenState extends State<UserSearchScreen> {
             onPressed: () {
               Navigator.pop(context, selectedUsers);
             },
-            child: Text('Confirmer la sélection'),
+            child:const Text('Confirmer la sélection'),
           ),
         ],
       ),
