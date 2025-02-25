@@ -1,5 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
-
 import 'dart:io';
 import 'package:logger/logger.dart';
 import 'package:flutter/material.dart';
@@ -14,57 +12,62 @@ final Logger logger = Logger();
 class ExportService {
   static Future<void> exportToPDF(BuildContext context, List<Map<String, dynamic>> students) async {
     try {
-    final pdf = pw.Document();
+      final pdf = pw.Document();
 
-    pdf.addPage(
-      pw.Page(
-        build: (pw.Context context) {
-          return pw.TableHelper.fromTextArray(
-            headers: ["Code Étudiant", "Nom & Prénom", "Note"],
-            data: students.map((student) => [
-              student["id"],
-              "${student["nom"]} ${student["prenom"]}",
-              student["note"].isEmpty ? "-" : student["note"]
-            ]).toList(),
-          );
-        },
-      ),
-    );
+      pdf.addPage(
+        pw.Page(
+          build: (pw.Context context) {
+            return pw.TableHelper.fromTextArray(
+              headers: ["Code Étudiant", "Nom & Prénom", "Note"],
+              data: students.map((student) => [
+                student["id"],
+                "${student["nom"]} ${student["prenom"]}",
+                student["note"].isEmpty ? "-" : student["note"]
+              ]).toList(),
+            );
+          },
+        ),
+      );
 
-    final output = await getTemporaryDirectory();
-    final file = File("${output.path}/notes.pdf");
-    await file.writeAsBytes(await pdf.save());
+      final output = await getTemporaryDirectory();
+      final file = File("${output.path}/notes.pdf");
+      await file.writeAsBytes(await pdf.save());
 
-    DialogService.showDialogMessage(context, "Succès", "PDF exporté avec succès !");
+      DialogService.showDialogMessage(context, "Succès", "PDF exporté avec succès !");
     } catch (e) {
+      logger.e("Erreur lors de l'exportation en PDF: $e");
       DialogService.showDialogMessage(context, "Erreur", "Échec de l'exportation en PDF.");
     }
-
   }
 
   static Future<void> exportToExcel(BuildContext context, List<Map<String, dynamic>> students) async {
     try {
-    var excel = Excel.createExcel();
-    var sheet = excel['Notes'];
+      var excel = Excel.createExcel();
+      var sheet = excel['Notes'];
 
-    sheet.appendRow(["Code Étudiant", "Nom & Prénom", "Note"]);
-
-    for (var student in students) {
+      // ✅ Correction : Utilisation de TextCellValue() pour les chaînes
       sheet.appendRow([
-        student["id"],
-        "${student["nom"]} ${student["prenom"]}",
-        student["note"].isEmpty ? "-" : student["note"]
+        TextCellValue("Code Étudiant"),
+        TextCellValue("Nom & Prénom"),
+        TextCellValue("Note")
       ]);
-    }
 
-    final output = await getTemporaryDirectory();
-    final file = File("${output.path}/notes.xlsx");
-    await file.writeAsBytes(excel.encode()!);
+      for (var student in students) {
+        sheet.appendRow([
+          TextCellValue(student["id"]?.toString() ?? "Inconnu"), // Conversion en String
+          TextCellValue("${student["nom"] ?? "Inconnu"} ${student["prenom"] ?? "Inconnu"}"),
+          TextCellValue(student["note"]?.toString() ?? "-")
+        ]);
+      }
 
-    DialogService.showDialogMessage(context, "Succès", "Excel exporté avec succès !");
+      final output = await getTemporaryDirectory();
+      final file = File("${output.path}/notes.xlsx");
+      await file.writeAsBytes(excel.encode()!);
+
+      DialogService.showDialogMessage(context, "Succès", "Excel exporté avec succès !");
     } catch (e) {
+      logger.e("Erreur lors de l'exportation en Excel: $e");
       DialogService.showDialogMessage(context, "Erreur", "Échec de l'exportation en Excel.");
     }
-
- }
+  }
 }

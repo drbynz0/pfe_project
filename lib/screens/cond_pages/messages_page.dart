@@ -1,369 +1,216 @@
 import 'package:flutter/material.dart';
 
-class MessagesPage extends StatefulWidget {
-  const MessagesPage({super.key});
+class MessagesConducteurPage extends StatefulWidget {
+  const MessagesConducteurPage({super.key});
+
   @override
-  MessagesPageState createState() => MessagesPageState();
+  MessagesConducteurPageState createState() => MessagesConducteurPageState();
 }
 
-class MessagesPageState extends State<MessagesPage> {
-  List<String> selectedUsers = [];
-  TextEditingController messageController = TextEditingController();
-  List<Map<String, dynamic>> messages = [];
-  bool isSendingMessage = false;
-  bool showNewChat = true;
-  bool showSelectionPage = false;
-
-  // Liste des chats précédents (exemple)
-  List<Map<String, dynamic>> previousChats = [
-    {
-      "users": ["Parent 1", "Étudiant 1"],
-      "messages": [
-        {"text": "Bonjour, comment ça va ?", "isSent": true},
-        {"text": "Bien, et toi ?", "isSent": false}
-      ]
-    },
-    {
-      "users": ["Parent 2", "Étudiant 2"],
-      "messages": [
-        {"text": "Salut ! Tout va bien ?", "isSent": true},
-        {"text": "Oui, merci !", "isSent": false}
-      ]
-    }
+class MessagesConducteurPageState extends State<MessagesConducteurPage> {
+  TextEditingController searchController = TextEditingController();
+  List<Map<String, dynamic>> conversations = [
+    {"name": "Administration", "lastMessage": "Changement d'itinéraire demain.", "time": "08:30"},
+    {"name": "Parents Groupe", "lastMessage": "Merci pour votre service !", "time": "10:15"},
+    {"name": "Élève Karim", "lastMessage": "Je serai en retard demain...", "time": "11:45"},
   ];
-
-  void _sendMessage() {
-    if (messageController.text.isNotEmpty && selectedUsers.isNotEmpty) {
-      setState(() {
-        isSendingMessage = true;
-      });
-      Future.delayed(const Duration(seconds: 2), () {
-        setState(() {
-          messages.add({"text": messageController.text, "isSent": true});
-          messageController.clear();
-          isSendingMessage = false;
-        });
-      });
-    }
-  }
-
-  void _openSelectionPage() {
-    setState(() {
-      showSelectionPage = true;
-    });
-  }
-
-  void _toggleChatView(bool showNewChat) {
-    setState(() {
-      this.showNewChat = showNewChat;
-      if (showNewChat) {
-        showSelectionPage = false;
-      }
-    });
-  }
+  List<String> groupes = ["Parents", "Élèves", "Administration"];
+  
+  // Listes de sélection indépendantes pour les élèves et les parents
+  List<bool> selectedEleves = List.generate(10, (index) => false); // Liste des cases à cocher pour les élèves
+  List<bool> selectedParents = List.generate(10, (index) => false); // Liste des cases à cocher pour les parents
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFF082E4A),
       appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 64, 86, 251),
-        title: Text(
-          selectedUsers.isNotEmpty
-              ? 'Chat avec ${selectedUsers.join(", ")}'
-              : 'Sélectionnez des utilisateurs',
-          style: const TextStyle(fontWeight: FontWeight.bold),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.group_add),
-            onPressed: _openSelectionPage,
-          ),
+        title: const Text("Messagerie Conducteur", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF140C5F),
+      ),
+      body: Column(
+        children: [
+          _buildSearchBar(),
+          _buildGroupStatus(),
+          Expanded(child: _buildConversationList()),
         ],
       ),
-      body: Container(
-        color: showNewChat ? Colors.blue[50] : Colors.purple[50],
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showNewMessageOptions(context),
+        backgroundColor: Colors.blue,
+        child: const Icon(Icons.message, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: TextField(
+        controller: searchController,
+        decoration: InputDecoration(
+          labelText: "Rechercher une conversation",
+          prefixIcon: const Icon(Icons.search, color: Colors.white),
+          filled: true,
+          fillColor: Colors.white.withOpacity(0.2),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+        style: const TextStyle(color: Colors.white),
+        onChanged: (query) {
+          setState(() {});
+        },
+      ),
+    );
+  }
+
+  Widget _buildGroupStatus() {
+    return SizedBox(
+      height: 80,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: groupes.length,
+        itemBuilder: (context, index) {
+          return GestureDetector(
+            onTap: () {},
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Column(
                 children: [
-                  ElevatedButton(
-                    onPressed: () => _toggleChatView(true),
-                    style: ButtonStyle(
-                      backgroundColor: WidgetStateProperty.all(const Color.fromRGBO(91, 73, 94, 1)),
-                      foregroundColor: WidgetStateProperty.all(Colors.white),
-                      shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      )),
-                    ),
-                    child: const Text('Nouveau Chat'),
+                  CircleAvatar(
+                    radius: 30,
+                    backgroundColor: Colors.blue,
+                    child: Text(groupes[index][0], style: const TextStyle(color: Colors.white, fontSize: 20)),
                   ),
-                  ElevatedButton(
-                    onPressed: () => _toggleChatView(false),
-                    style: ButtonStyle(
-                      backgroundColor: WidgetStateProperty.all(const Color.fromRGBO(91, 73, 94, 1)),
-                      foregroundColor: WidgetStateProperty.all(Colors.white),
-                      shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      )),
-                    ),
-                    child: const Text('Mes Chats'),
+                  const SizedBox(height: 5),
+                  Flexible(
+                    child: Text(groupes[index], style: const TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
             ),
-            if (showNewChat) ...[
-              if (showSelectionPage) ...[
-                Expanded(child: SelectionPage(onSelectUsers: (users) {
-                  setState(() {
-                    selectedUsers = users;
-                  });
-                })),
-              ] else ...[
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.all(10),
-                    itemCount: messages.length,
-                    itemBuilder: (context, index) {
-                      final message = messages[index];
-                      return Align(
-                        alignment: message["isSent"]
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          padding: const EdgeInsets.all(12),
-                          margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-                          decoration: BoxDecoration(
-                            color: message["isSent"]
-                                ? Colors.purpleAccent
-                                : Colors.grey[300],
-                            borderRadius: BorderRadius.circular(15),
-                            boxShadow: const [
-                              BoxShadow(
-                                color: Colors.black26,
-                                offset: Offset(0, 2),
-                                blurRadius: 4,
-                              ),
-                            ],
-                          ),
-                          child: Text(
-                            message["text"],
-                            style: TextStyle(
-                              color: message["isSent"] ? Colors.white : Colors.black,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                if (isSendingMessage)
-                  const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: CircularProgressIndicator(),
-                  ),
-                Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: messageController,
-                          decoration: InputDecoration(
-                            hintText: 'Écrire un message...',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            filled: true,
-                            fillColor: Colors.white,
-                            contentPadding: const EdgeInsets.symmetric(vertical: 15, horizontal: 20),
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.send, color: Colors.purpleAccent),
-                        onPressed: selectedUsers.isEmpty ? null : _sendMessage,
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ] else ...[
-              Expanded(
-                child: ListView.builder(
-                  itemCount: previousChats.length,
-                  itemBuilder: (context, index) {
-                    final chat = previousChats[index];
-                    return ListTile(
-                      title: Text(
-                        'Chat avec ${chat["users"].join(", ")}',
-                        style: const TextStyle(fontWeight: FontWeight.bold),
-                      ),
-                      tileColor: Colors.purple[50],
-                      onTap: () {
-                        setState(() {
-                          selectedUsers = List.from(chat["users"]);
-                          messages = List.from(chat["messages"]);
-                          showNewChat = true;
-                        });
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ],
-        ),
+          );
+        },
       ),
     );
   }
-}
 
-class SelectionPage extends StatefulWidget {
-  final Function(List<String>) onSelectUsers;
-  const SelectionPage({super.key, required this.onSelectUsers});
-
-  @override
-  SelectionPageState createState() => SelectionPageState();
-}
-
-class SelectionPageState extends State<SelectionPage> {
-  List<String> parents = ['Parent 1', 'Parent 2'];
-  List<String> students = ['Étudiant 1', 'Étudiant 2'];
-  List<String> selectedUsers = [];
-  TextEditingController searchController = TextEditingController();
-  String category = 'Administration';
-  List<String> filteredUsers = [];
-  bool selectAllParents = false;
-  bool selectAllStudents = false;
-
-  @override
-  void initState() {
-    super.initState();
-    filteredUsers = ['Administration']; // Par défaut, afficher l'administration
-  }
-
-  void _filterUsers(String query) {
-    setState(() {
-      if (category == 'Parents') {
-        filteredUsers = parents
-            .where((user) => user.toLowerCase().contains(query.toLowerCase()))
-            .toList();
-      } else if (category == 'Étudiants') {
-        filteredUsers = students
-            .where((user) => user.toLowerCase().contains(query.toLowerCase()))
-            .toList();
-      }
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      child: Column(
-        children: [
-          const Text(
-            'Sélectionnez les utilisateurs',
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-          ),
-          DropdownButton<String>(
-            value: category,
-            onChanged: (String? newValue) {
-              setState(() {
-                category = newValue!;
-                _filterUsers('');
-                selectAllParents = false;
-                selectAllStudents = false;
-              });
-            },
-            items: ['Administration', 'Parents', 'Étudiants']
-                .map<DropdownMenuItem<String>>((String value) {
-              return DropdownMenuItem<String>(
-                value: value,
-                child: Text(value),
-              );
-            }).toList(),
-          ),
-          if (category == 'Parents' || category == 'Étudiants')
-            Column(
-              children: [
-                CheckboxListTile(
-                  title: Text("Sélectionner tout ${category.toLowerCase()}s"),
-                  value: category == 'Parents' ? selectAllParents : selectAllStudents,
-                  onChanged: (bool? value) {
-                    setState(() {
-                      if (category == 'Parents') {
-                        selectAllParents = value!;
-                        if (selectAllParents) {
-                          selectedUsers.addAll(parents);
-                        } else {
-                          selectedUsers.removeWhere((user) => parents.contains(user));
-                        }
-                      } else if (category == 'Étudiants') {
-                        selectAllStudents = value!;
-                        if (selectAllStudents) {
-                          selectedUsers.addAll(students);
-                        } else {
-                          selectedUsers.removeWhere((user) => students.contains(user));
-                        }
-                      }
-                    });
-                  },
-                ),
-                TextField(
-                  controller: searchController,
-                  decoration: InputDecoration(
-                    hintText: 'Rechercher un ${category.toLowerCase()}...',
-                    suffixIcon: const Icon(Icons.search),
-                    focusedBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.purpleAccent),
-                    ),
-                  ),
-                  onChanged: _filterUsers,
-                ),
-              ],
+  Widget _buildConversationList() {
+    return ListView.builder(
+      itemCount: conversations.length,
+      itemBuilder: (context, index) {
+        final conversation = conversations[index];
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ListTile(
+            leading: const CircleAvatar(
+              backgroundColor: Colors.blue,
+              child: Icon(Icons.person, color: Colors.white),
             ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: filteredUsers.length,
-              itemBuilder: (context, index) {
-                return CheckboxListTile(
-                  title: Text(filteredUsers[index]),
-                  value: selectedUsers.contains(filteredUsers[index]),
-                  onChanged: (bool? value) {
-                    setState(() {
-                      if (value == true) {
-                        selectedUsers.add(filteredUsers[index]);
-                      } else {
-                        selectedUsers.remove(filteredUsers[index]);
-                      }
-                    });
-                  },
-                );
+            title: Text(conversation["name"], style: const TextStyle(fontWeight: FontWeight.bold)),
+            subtitle: Text(conversation["lastMessage"], maxLines: 1, overflow: TextOverflow.ellipsis),
+            trailing: Text(conversation["time"], style: const TextStyle(color: Colors.grey)),
+            onTap: () {},
+          ),
+        );
+      },
+    );
+  }
+
+  void _showNewMessageOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person, color: Colors.blue),
+              title: const Text("Élève"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.group, color: Colors.green),
+              title: const Text("Parent"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.business, color: Colors.red),
+              title: const Text("Administration"),
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(Icons.people, color: Colors.purple),
+              title: const Text("Conversation groupée"),
+              onTap: () {
+                Navigator.pop(context);
+                _showGroupChatSelection(context);
               },
             ),
-          ),
-          ElevatedButton(
-            onPressed: selectedUsers.isEmpty
-                ? null
-                : () {
-                    widget.onSelectUsers(selectedUsers);
+          ],
+        );
+      },
+    );
+  }
+
+  void _showGroupChatSelection(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return DefaultTabController(
+          length: 2,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const TabBar(
+                labelColor: Colors.blue,
+                unselectedLabelColor: Colors.grey,
+                indicatorColor: Colors.blue,
+                tabs: [
+                  Tab(text: "Élèves"),
+                  Tab(text: "Parents"),
+                ],
+              ),
+              SizedBox(
+                height: 300,
+                child: TabBarView(
+                  children: [
+                    _buildUserSelectionList("Élève", selectedEleves),
+                    _buildUserSelectionList("Parent", selectedParents),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ElevatedButton(
+                  onPressed: () {
                     Navigator.pop(context);
                   },
-            style: ButtonStyle(
-              backgroundColor: WidgetStateProperty.all(const Color.fromARGB(255, 140, 116, 144)),
-              foregroundColor: WidgetStateProperty.all(Colors.white),
-              shape: WidgetStateProperty.all(RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-              ))),
-            child: const Text('Commencer le chat'),
+                  child: const Text("Lancer la conversation"),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
+    );
+  }
+
+  // Ajout de paramètres pour les listes de sélection
+  Widget _buildUserSelectionList(String type, List<bool> selectionList) {
+    return ListView.builder(
+      itemCount: 10,
+      itemBuilder: (context, index) {
+        return CheckboxListTile(
+          title: Text("$type $index"),
+          value: selectionList[index],  // Utilisation de la liste de sélection correspondant au type
+          onChanged: (bool? value) {
+            setState(() {
+              selectionList[index] = value ?? false; // Mise à jour de la sélection
+            });
+          },
+        );
+      },
     );
   }
 }
