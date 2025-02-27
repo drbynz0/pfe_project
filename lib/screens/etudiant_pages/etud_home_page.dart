@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import '/services/auth_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'messages_page.dart';
 import 'settings.dart';
 import 'suivi_bus.dart';
 import 'suivi_academique.dart';
+import '/screens/etudiant_pages/profile_page.dart';
 //hiba
 //ikram
 class EtudiantHomePage extends StatefulWidget {
@@ -31,6 +33,8 @@ class EtudiantHomePageState extends State<EtudiantHomePage> {
 
   @override
   Widget build(BuildContext context) {
+    final String? studentId = FirebaseAuth.instance.currentUser?.uid;
+
     return Scaffold(
       backgroundColor: const Color(0xFF082E4A),
       appBar: AppBar(
@@ -49,8 +53,12 @@ class EtudiantHomePageState extends State<EtudiantHomePage> {
             offset: const Offset(0, 40),
             onSelected: (value) {
               if (value == 'profile') {
-                // Rediriger vers la page de profil
-                Navigator.pushNamed(context, '/profile');
+              Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProfilePage(studentId: studentId!),
+                  ),
+                  );
               } else if (value == 'logout') {
                 AuthService.logout(context);
               }

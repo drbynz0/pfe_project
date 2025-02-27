@@ -8,6 +8,7 @@ import '/widgets/custom_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '/providers/locale_provider.dart';
 import '/generated/l10n.dart';
+import '/screens/ens_pages/profile_page.dart';
 
 class TeacherHomePage extends StatefulWidget {
   const TeacherHomePage({super.key});
@@ -63,10 +64,11 @@ class TeacherHomePageState extends State<TeacherHomePage> {
             onSelected: (value) {
               if (value == 'profile') {
                 // Rediriger vers la page de profil
-                Navigator.pushNamed(
+                Navigator.push(
                   context,
-                  '/profile',
-                  arguments: {'teacherId': teacherId}, // Utilisez teacherId ici
+                  MaterialPageRoute(
+                    builder: (context) => ProfilePage(teacherId: teacherId!),
+                  ),
                 );
               } else if (value == 'logout') {
                 AuthService.logout(context);

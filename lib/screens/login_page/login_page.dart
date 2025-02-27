@@ -141,7 +141,7 @@ class LoginPageState extends State<LoginPage> {
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     const Text(
-                      "App School",
+                      "School App",
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 32,

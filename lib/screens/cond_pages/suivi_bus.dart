@@ -1,7 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_map_animated_marker/flutter_map_animated_marker.dart';
+import 'package:geodesy/geodesy.dart' as geodesy;
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
+import 'package:rxdart/subjects.dart';
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart'; // Importation du package
 
 class SuiviBusPage extends StatefulWidget {
   const SuiviBusPage({super.key});
@@ -10,30 +16,75 @@ class SuiviBusPage extends StatefulWidget {
   SuiviBusPageState createState() => SuiviBusPageState();
 }
 
-class SuiviBusPageState extends State<SuiviBusPage> {
+class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixin {
   final Location _location = Location();
-  LatLng _busPosition = const LatLng(37.7749, -122.4194); // Position initiale fictive
+  final MapController _mapController = MapController();
+  final BehaviorSubject<LocationData> _locationStreamController = BehaviorSubject();
+  final geodesy.Geodesy _geodesy = geodesy.Geodesy();
+
+  LocationData? _lastLocation;
+  double _distance = 0.0;
+  int _duration = 0;
   bool _isTripStarted = false;
 
-  void _getCurrentLocation() async {
-    var currentLocation = await _location.getLocation();
-    setState(() {
-      _busPosition = LatLng(currentLocation.latitude!, currentLocation.longitude!);
+  @override
+  void initState() {
+    super.initState();
+    _checkPermissions();
+    _listenToLocationUpdates();
+  }
+
+  Future<void> _checkPermissions() async {
+    bool serviceEnabled = await _location.serviceEnabled();
+    if (!serviceEnabled) {
+      serviceEnabled = await _location.requestService();
+      if (!serviceEnabled) return;
+    }
+
+    PermissionStatus permissionGranted = await _location.hasPermission();
+    if (permissionGranted == PermissionStatus.denied) {
+      permissionGranted = await _location.requestPermission();
+      if (permissionGranted != PermissionStatus.granted) return;
+    }
+  }
+
+  void _listenToLocationUpdates() {
+    _locationStreamController.stream.listen((LocationData locationData) {
+      if (_lastLocation != null) {
+        _duration = ((locationData.time ?? 0) - (_lastLocation!.time ?? 0)).toInt();
+        _distance = _geodesy.distanceBetweenTwoGeoPoints(
+          geodesy.LatLng(locationData.latitude ?? 0, locationData.longitude ?? 0),
+          geodesy.LatLng(_lastLocation!.latitude ?? 0, _lastLocation!.longitude ?? 0),
+        ).toDouble();
+      }
+      _lastLocation = locationData;
+
+      // Déplacer la carte vers la nouvelle position
+      _mapController.move(
+        LatLng(locationData.latitude ?? 0, locationData.longitude ?? 0),
+        _mapController.camera.zoom,
+      );
     });
   }
 
-  void _startTrip() {
+  void _toggleTrip() {
     setState(() {
       _isTripStarted = !_isTripStarted;
     });
+
     if (_isTripStarted) {
-      _getCurrentLocation();
       _location.onLocationChanged.listen((LocationData locationData) {
-        setState(() {
-          _busPosition = LatLng(locationData.latitude!, locationData.longitude!);
-        });
+        _locationStreamController.add(locationData);
       });
+    } else {
+      _locationStreamController.add(_lastLocation!); // Arrêter les mises à jour
     }
+  }
+
+  @override
+  void dispose() {
+    _locationStreamController.close();
+    super.dispose();
   }
 
   @override
@@ -43,48 +94,73 @@ class SuiviBusPageState extends State<SuiviBusPage> {
         title: const Text('Suivi du Bus'),
         backgroundColor: Colors.blue,
       ),
-      body: Stack(
-        children: [
-          FlutterMap(
-            mapController: MapController(), // Ajout du contrôleur
-            options: const MapOptions(),
+      body: StreamBuilder<LocationData>(
+        stream: _locationStreamController.stream,
+        builder: (context, snapshot) {
+          final locationData = snapshot.data;
+          final nextSimulatedLocation = _geodesy.destinationPointByDistanceAndBearing(
+            geodesy.LatLng(
+              locationData?.latitude ?? 0.0,
+              locationData?.longitude ?? 0.0,
+            ),
+            _distance,
+            locationData?.heading ?? 0.0,
+          );
+
+          return Stack(
             children: [
-              TileLayer(
-                urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                subdomains: ['a', 'b', 'c'],
-              ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point: _busPosition,
-                    width: 80.0,
-                    height: 80.0,
-                    alignment: Alignment.center, // Ajouté pour éviter les erreurs
-                    rotate: true, // Indispensable dans Flutter Map 8.0.0
-                    child: const Icon(
-                      Icons.directions_bus,
-                      color: Colors.red,
-                      size: 40,
-                    ),
+              FlutterMap(
+                mapController: _mapController,
+                options: MapOptions(
+                  initialCenter: LatLng(locationData?.latitude ?? 37.7749, locationData?.longitude ?? -122.4194),
+                  initialZoom: 16.0,
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+                    subdomains: ['a', 'b', 'c'],
+                    tileProvider: CancellableNetworkTileProvider(), // Utilisation de CancellableTileProvider
                   ),
+                  if (locationData != null)
+                    AnimatedMarkerLayer(
+                      options: AnimatedMarkerLayerOptions(
+                        duration: Duration(milliseconds: _duration),
+                        marker: Marker(
+                          width: 40,
+                          height: 40,
+                          point: LatLng(
+                            nextSimulatedLocation.latitude,
+                            nextSimulatedLocation.longitude,
+                          ),
+                          child: Transform.rotate(
+                            angle: (locationData.heading ?? 0) * pi / 180,
+                            child: const Icon(
+                              Icons.directions_bus,
+                              color: Colors.red,
+                              size: 40,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
                 ],
               ),
-            ],
-          ),
-          Positioned(
-            bottom: 20,
-            left: 20,
-            right: 20,
-            child: ElevatedButton(
-              onPressed: _startTrip,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _isTripStarted ? Colors.red : Colors.green,
-                padding: const EdgeInsets.symmetric(vertical: 15),
+              Positioned(
+                bottom: 20,
+                left: 20,
+                right: 20,
+                child: ElevatedButton(
+                  onPressed: _toggleTrip,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _isTripStarted ? Colors.red : Colors.green,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                  ),
+                  child: Text(_isTripStarted ? "Arrêter le trajet" : "Démarrer le trajet"),
+                ),
               ),
-              child: Text(_isTripStarted ? "Arrêter le trajet" : "Démarrer le trajet"),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }

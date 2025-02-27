@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '/services/add_teacher.dart';
+import '/services/add_student.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -67,6 +68,7 @@ class SignupPageState extends State<SignupPage> {
       // Vérifier le type d'utilisateur et ajouter l'enseignant à la collection Enseignant
       var userDoc = await FirebaseFirestore.instance.collection("Users").doc(identifier).get();
       if (userDoc.exists && userDoc.data()?['type'] == 'enseignant') {
+        String uid = userDoc.data()?['uid'];
         String nom = userDoc.data()?['nom'];
         String prenom = userDoc.data()?['prenom'];
         String email = userDoc.data()?['email'];
@@ -74,7 +76,19 @@ class SignupPageState extends State<SignupPage> {
         String lieuNaissance = userDoc.data()?['lieu_naissance'];
 
         TeacherService teacherService = TeacherService();
-        await teacherService.addTeacher(identifier, nom, prenom, email, dateNaissance, lieuNaissance);
+        await teacherService.addTeacher(uid, identifier, nom, prenom, email, dateNaissance, lieuNaissance);
+
+      } else if (userDoc.exists && userDoc.data()?['type'] == 'etudiant') {
+        String uid = userDoc.data()?['uid'];
+        String nom = userDoc.data()?['nom'];
+        String prenom = userDoc.data()?['prenom'];
+        String email = userDoc.data()?['email'];
+        String dateNaissance = userDoc.data()?['date_naissance'];
+        String lieuNaissance = userDoc.data()?['lieu_naissance'];
+        String classe = userDoc.data()?['classe'];
+
+        StudentService studentService = StudentService();
+        await studentService.addStudent(uid, identifier, nom, prenom, email, dateNaissance, lieuNaissance, classe);
       }
 
       await userCredential.user!.sendEmailVerification();

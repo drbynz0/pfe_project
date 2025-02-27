@@ -190,13 +190,12 @@ class SettingsPageState extends State<SettingsPage> {
       builder: (context) {
         return Theme(
           data: ThemeData.dark().copyWith(
-            dialogBackgroundColor: const Color(0xFF1E1E1E),
             textTheme: const TextTheme(
               bodyLarge: TextStyle(color: Colors.white),
               bodyMedium: TextStyle(color: Colors.white),
             ),
             iconTheme: const IconThemeData(color: Colors.white),
-            cardColor: const Color(0xFF2E2E2E),
+            cardColor: const Color(0xFF2E2E2E), dialogTheme: DialogThemeData(backgroundColor: const Color(0xFF1E1E1E)),
           ),
           child: AlertDialog(
             title: const Text("Sélectionner la langue", style: TextStyle(color: Colors.white)),

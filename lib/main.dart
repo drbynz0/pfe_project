@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'generated/l10n.dart';
 import 'firebase_options.dart';
-import '/screens/ens_pages/profile_page.dart';
 import '/screens/login_page/login_page.dart';
 import '/screens/login_page/reset_password.dart';
 import '/screens/login_page/signup_page.dart';
@@ -14,6 +13,8 @@ import 'screens/cond_pages/cond_home_page.dart';
 import '/services/matiere_service.dart';
 import '/providers/locale_provider.dart';
 import '/providers/theme_provider.dart';
+import '/providers/trip_provider.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,6 +27,10 @@ void main() async {
         ChangeNotifierProvider(create: (context) => MatiereService()),
         ChangeNotifierProvider(create: (context) => LocaleProvider()..loadLocale()),
         ChangeNotifierProvider(create: (context) => ThemeProvider()..loadTheme()),
+        ChangeNotifierProvider(
+      create: (context) => TripProvider(),
+      child: const MyApp(),
+    ),
       ],
       child: const MyApp(),
     ),
@@ -62,17 +67,7 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => const SignupPage(),
         '/resetPwd': (context) => const ResetPasswordPage(),
       },
-      onGenerateRoute: (settings) {
-        if (settings.name == '/profile') {
-          final args = settings.arguments as Map<String, dynamic>;
-          return MaterialPageRoute(
-            builder: (context) {
-              return ProfilePage(teacherId: args['teacherId']);
-            },
-          );
-        }
-        return null;
-      },
+
     );
   }
 }

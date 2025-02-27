@@ -3,9 +3,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class TeacherService {
   final CollectionReference teacherCollection = FirebaseFirestore.instance.collection('Enseignants');
 
-  Future<void> addTeacher(String identifier, String nom, String prenom, String email, String dateNaissance, String lieuNaissance) async {
+  Future<void> addTeacher(String uid, String identifier, String nom, String prenom, String email, String dateNaissance, String lieuNaissance) async {
     try {
       await teacherCollection.doc(identifier).set({
+        'uid': uid,
         'nom': nom,
         'prenom': prenom,
         'email': email,
