@@ -1,19 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
-import 'firebase_options.dart'; // Importez ce fichier après l'avoir généré
-import '/utils/profile_page.dart';
-import '/screens/login_page/login_page.dart';
 import 'screens/ens_pages/ens_home_page.dart';
 import 'screens/etudiant_pages/etud_home_page.dart';
 import 'screens/cond_pages/cond_home_page.dart';
-import '/services/matiere_service.dart';
+import 'screens/parent_pages/parent_home_page.dart';
+import 'screens/login_page/login_page.dart';
+import 'utils/profile_page.dart';
+import 'services/matiere_service.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+void main() {
   runApp(
     MultiProvider(
       providers: [
@@ -44,6 +39,8 @@ class MyApp extends StatelessWidget {
         '/homeEns': (context) => const TeacherHomePage(),
         '/homeEtud': (context) => const EtudiantHomePage(),
         '/homeCond': (context) => const CondHomePage(),
+        '/homePar': (context) => const ParentHomePage(),
+        '/messages': (context) => const MessagesPage(),
         '/profile': (context) => const ProfilePage(),
       },
     );
