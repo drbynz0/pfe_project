@@ -99,13 +99,40 @@ class ProfilePage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: data['classe']?.length ?? 0,
-                    itemBuilder: (context, index) {
-                      var classe = data['classe'][index];
-                      return _classeCard(classe['nom'], classe['matieres']);
+                  FutureBuilder<QuerySnapshot>(
+                    future: FirebaseFirestore.instance
+                        .collection('Enseignants')
+                        .doc(doc.id)
+                        .collection('Matieres')
+                        .get(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(
+                          child: Text(
+                            "Aucune matière trouvée",
+                            style: TextStyle(color: Colors.white, fontSize: 16),
+                          ),
+                        );
+                      }
+
+                      var classes = snapshot.data!.docs;
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: classes.length,
+                        itemBuilder: (context, index) {
+                          var classeDoc = classes[index];
+                          var classeData = classeDoc.data() as Map<String, dynamic>;
+                          var matieres = List<Map<String, dynamic>>.from(classeData['matieres']);
+
+                          return _classeCard(classeDoc.id, matieres);
+                        },
+                      );
                     },
                   ),
                   const SizedBox(height: 20),
@@ -161,7 +188,7 @@ class ProfilePage extends StatelessWidget {
   }
 
   // Function to display classes and subjects as a card with buttons
-  Widget _classeCard(String classe, List matieres) {
+  Widget _classeCard(String classe, List<Map<String, dynamic>> matieres) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       padding: const EdgeInsets.all(16.0),
@@ -195,7 +222,7 @@ class ProfilePage extends StatelessWidget {
                   ),
                 ),
                 child: Text(
-                  matiere,
+                  matiere['nom'],
                   style: const TextStyle(fontSize: 14, color: Colors.white),
                 ),
               );

@@ -126,11 +126,8 @@ class ProfilePage extends StatelessWidget {
 
                           var matieresData = matieresSnapshot.data!.data() as Map<String, dynamic>;
 
-                          // Filtrer les matières (en excluant des champs comme 'nom' si nécessaire)
-                          List<Map<String, dynamic>> matieresList = matieresData.entries
-                              .where((entry) => entry.value is Map<String, dynamic>) // On s'assure que c'est une Map
-                              .map((entry) => entry.value as Map<String, dynamic>)
-                              .toList();
+                          // Récupérer les matières
+                          List<Map<String, dynamic>> matieresList = List<Map<String, dynamic>>.from(matieresData['matieres']);
 
                           return _classeCard(classe, matieresList);
                         },
@@ -190,7 +187,7 @@ class ProfilePage extends StatelessWidget {
   }
 
   // Function to display classes and subjects as a card with buttons
-  Widget _classeCard(String classe, List matieres) {
+  Widget _classeCard(String classe, List<Map<String, dynamic>> matieres) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
       padding: const EdgeInsets.all(16.0),
@@ -231,7 +228,11 @@ class ProfilePage extends StatelessWidget {
                       style: const TextStyle(fontSize: 14, color: Colors.white),
                     ),
                     Text(
-                      matiere['prof'],
+                      "Prof: ${matiere['prof']}",
+                      style: const TextStyle(fontSize: 12, color: Colors.white70),
+                    ),
+                    Text(
+                      "Coef: ${matiere['coef']}",
                       style: const TextStyle(fontSize: 12, color: Colors.white70),
                     ),
                   ],

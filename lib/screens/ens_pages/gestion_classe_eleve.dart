@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:intl/intl.dart';
 
 class GestionClassesEleves extends StatefulWidget {
   const GestionClassesEleves({super.key});
@@ -8,44 +11,109 @@ class GestionClassesEleves extends StatefulWidget {
 }
 
 class GestionClassesElevesState extends State<GestionClassesEleves> {
-  String selectedClass = "GI"; // Classe par défaut sélectionnée
-  String? selectedMatiere; // Matière sélectionnée
-  String horaireMatiere = ""; // Horaire affiché automatiquement
+  String? selectedClass;
+  String? selectedMatiere;
+  String horaireMatiere = "";
+  String? teacherDocId;
+  List<String> classNames = [];
+  List<Map<String, String>> matieres = [];
+  List<Map<String, dynamic>> students = [];
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // Liste des matières et horaires par classe
-  final Map<String, List<Map<String, String>>> matieresData = {
-    "GI": [
-      {"matiere": "Programmation Mobile", "horaire": "08:00 - 10:00"},
-      {"matiere": "Base de Données", "horaire": "14:00 - 16:00"},
-      {"matiere": "Algorithmes", "horaire": "10:00 - 12:00"},
-    ],
-    "ARI": [
-      {"matiere": "Administration Réseau", "horaire": "09:00 - 11:00"},
-      {"matiere": "Sécurité Informatique", "horaire": "13:00 - 15:00"},
-      {"matiere": "Virtualisation", "horaire": "15:00 - 17:00"},
-    ],
-  };
+  @override
+  void initState() {
+    super.initState();
+    _findTeacherDocument();
+  }
 
-  // Liste des élèves par classe
-  final Map<String, List<Map<String, dynamic>>> classesData = {
-    "GI": [
-      {"nom": "Mohamed", "prenom": "Ali", "present": false, "absent": false},
-      {"nom": "Said", "prenom": "Fatima", "present": false, "absent": false},
-      {"nom": "Ahmed", "prenom": "Youssouf", "present": false, "absent": false},
-    ],
-    "ARI": [
-      {"nom": "Hassan", "prenom": "Salim", "present": false, "absent": false},
-      {"nom": "Abdou", "prenom": "Mariam", "present": false, "absent": false},
-      {"nom": "Bacar", "prenom": "Ismael", "present": false, "absent": false},
-    ],
-  };
+  Future<void> _findTeacherDocument() async {
+    String? uid = _auth.currentUser?.uid;
+    if (uid == null) return;
+
+    var querySnapshot = await FirebaseFirestore.instance
+        .collection('Enseignants')
+        .where('uid', isEqualTo: uid)
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      setState(() {
+        teacherDocId = querySnapshot.docs.first.id;
+      });
+      _loadClassNames();
+    }
+  }
+
+  Future<void> _loadClassNames() async {
+    if (teacherDocId == null) return;
+
+    var snapshot = await FirebaseFirestore.instance
+        .collection('Enseignants')
+        .doc(teacherDocId)
+        .collection('Matieres')
+        .get();
+
+    setState(() {
+      classNames = snapshot.docs.map((doc) => doc.id).toList();
+      if (classNames.isNotEmpty) {
+        selectedClass = classNames.first;
+        _loadMatieres();
+        _loadStudents();
+      }
+    });
+  }
+
+  Future<void> _loadMatieres() async {
+    if (teacherDocId == null || selectedClass == null) return;
+
+    var doc = await FirebaseFirestore.instance
+        .collection('Enseignants')
+        .doc(teacherDocId)
+        .collection('Matieres')
+        .doc(selectedClass)
+        .get();
+
+    if (doc.exists) {
+      setState(() {
+        matieres = List<Map<String, String>>.from(
+          (doc['matieres'] as List).map((item) => {
+            'nom': item['nom'] as String,
+            'horaire': item['horaire'] as String,
+          }),
+        );
+      });
+    }
+  }
+
+  Future<void> _loadStudents() async {
+    if (selectedClass == null) return;
+
+    var snapshot = await FirebaseFirestore.instance
+        .collection('Etudiants')
+        .where('classe', isEqualTo: selectedClass)
+        .get();
+
+    setState(() {
+      students = snapshot.docs.map((doc) {
+        var data = doc.data();
+        return {
+          'id': doc.id,
+          'nom': data['nom'],
+          'prenom': data['prenom'],
+          'present': false,
+          'absent': false,
+        };
+      }).toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF082E4A),
       appBar: AppBar(
-        title: const Text("Gestion des Classes & Élèves",
+        title: const Text(
+          "Gestion des Classes & Élèves",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Inter Tight'),
         ),
         backgroundColor: const Color(0xFF140C5F),
@@ -65,11 +133,12 @@ class GestionClassesElevesState extends State<GestionClassesEleves> {
             padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildClassButton("GI"),
-                const SizedBox(width: 8),
-                _buildClassButton("ARI"),
-              ],
+              children: classNames.map((className) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: _buildClassButton(className),
+                );
+              }).toList(),
             ),
           ),
           const SizedBox(height: 10),
@@ -89,17 +158,17 @@ class GestionClassesElevesState extends State<GestionClassesEleves> {
                       filled: true,
                       fillColor: Colors.white,
                     ),
-                    items: matieresData[selectedClass]!
+                    items: matieres
                         .map((matiere) => DropdownMenuItem<String>(
-                              value: matiere["matiere"],
-                              child: Text(matiere["matiere"]!),
+                              value: matiere["nom"],
+                              child: Text(matiere["nom"]!),
                             ))
                         .toList(),
                     onChanged: (value) {
                       setState(() {
                         selectedMatiere = value;
-                        horaireMatiere = matieresData[selectedClass]!
-                            .firstWhere((matiere) => matiere["matiere"] == value)["horaire"]!;
+                        horaireMatiere = matieres
+                            .firstWhere((matiere) => matiere["nom"] == value)["horaire"]!;
                       });
                     },
                   ),
@@ -158,6 +227,8 @@ class GestionClassesElevesState extends State<GestionClassesEleves> {
           selectedClass = className;
           selectedMatiere = null;
           horaireMatiere = "";
+          _loadMatieres();
+          _loadStudents();
         });
       },
       style: ElevatedButton.styleFrom(
@@ -199,14 +270,16 @@ class GestionClassesElevesState extends State<GestionClassesEleves> {
             (Set<WidgetState> states) => Colors.blue[200],
           ),
           columns: const [
+            DataColumn(label: Text("Identifiant", style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text("Nom", style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text("Prénom", style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text("Présent", style: TextStyle(fontWeight: FontWeight.bold))),
             DataColumn(label: Text("Absent", style: TextStyle(fontWeight: FontWeight.bold))),
           ],
-          rows: classesData[selectedClass]!.map((eleve) {
+          rows: students.map((eleve) {
             return DataRow(
               cells: [
+                DataCell(Text(eleve["id"]!)),
                 DataCell(Text(eleve["nom"]!)),
                 DataCell(Text(eleve["prenom"]!)),
                 DataCell(Checkbox(
@@ -236,7 +309,26 @@ class GestionClassesElevesState extends State<GestionClassesEleves> {
   }
 
   /// **Méthode pour envoyer la liste des présences**
-  void _envoyerListePresence() {
-    // Implémentation pour envoyer la liste des absents avec la matière et l'horaire
+  void _envoyerListePresence() async {
+    String jourActuel = DateFormat('EEEE', 'fr_FR').format(DateTime.now());
+    for (var eleve in students) {
+      if (eleve["absent"] == true) {
+        var docRef = FirebaseFirestore.instance.collection('Etudiants').doc(eleve["id"]);
+        await docRef.update({
+          "nbabsence": FieldValue.increment(1),
+          "absences": FieldValue.arrayUnion([
+            {
+              "matiere": selectedMatiere,
+              "horaire": horaireMatiere,
+              "jour": jourActuel,
+            }
+          ]),
+        });
+      }
+    }
+    // ignore: use_build_context_synchronously
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text("Liste de présence envoyée avec succès"), backgroundColor: Colors.green),
+    );
   }
 }

@@ -12,6 +12,36 @@ class NotesPage extends StatefulWidget {
   NotesPageState createState() => NotesPageState();
 }
 
+Future<String?> _showFileNameDialog(BuildContext context) async {
+  TextEditingController fileNameController = TextEditingController();
+  return showDialog<String>(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Mes notes'),
+        content: TextField(
+          controller: fileNameController,
+          decoration: const InputDecoration(hintText: 'Entrez le nom du fichier'),
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: const Text('Annuler'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          TextButton(
+            child: const Text('OK'),
+            onPressed: () {
+              Navigator.of(context).pop(fileNameController.text);
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
 class NotesPageState extends State<NotesPage> {
   String? studentDocId;
   String? selectedYear;
@@ -83,6 +113,13 @@ class NotesPageState extends State<NotesPage> {
       return;
     }
 
+    // Afficher la boîte de dialogue pour saisir le nom du fichier
+    String? fileName = await _showFileNameDialog(context);
+    if (fileName == null || fileName.isEmpty) {
+      // L'utilisateur a annulé la boîte de dialogue
+      return;
+    }
+
     final pdf = pw.Document();
     pdf.addPage(
       pw.Page(
@@ -107,8 +144,8 @@ class NotesPageState extends State<NotesPage> {
       ),
     );
 
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File("${dir.path}/notes_$selectedYear.pdf");
+    final directory = await getApplicationDocumentsDirectory();
+    final file = File('${directory.path}/$fileName.pdf');
     await file.writeAsBytes(await pdf.save());
 
     // ignore: use_build_context_synchronously
@@ -131,30 +168,44 @@ class NotesPageState extends State<NotesPage> {
                   future: _loadYears(),
                   builder: (context, snapshot) {
                     if (!snapshot.hasData) return const CircularProgressIndicator();
-                    return DropdownButton<String>(
-                      focusColor: Colors.white,
-                      dropdownColor: Colors.white,
-                      value: selectedYear,
-                      hint: const Text("Sélectionner une année", style: TextStyle(color: Color.fromARGB(255, 0, 0, 0))),
-                      items: snapshot.data!.map((year) => DropdownMenuItem(
-                        value: year,
-                        child: Row(
-                          children: [
-                            const Spacer(),
-                            Text(year, style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0))),
-                          ],
+                    if (snapshot.hasData && selectedYear == null && snapshot.data!.isNotEmpty) {
+                      selectedYear = snapshot.data!.first;
+                      _loadNotes(selectedYear!);
+                    }
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        SizedBox(
+                          width: 200,
+                          child: DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            value: selectedYear,
+                            hint: const Text("Sélectionner une année"),
+                            decoration: const InputDecoration(
+                              border: OutlineInputBorder(),
+                              filled: true,
+                              fillColor: Colors.white,
+                            ),
+                            items: snapshot.data!.map((year) => DropdownMenuItem(
+                              value: year,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: Text(year, style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0))),
+                              ),
+                            )).toList(),
+                            onChanged: (value) {
+                              if (value != null) _loadNotes(value);
+                            },
+                          ),
                         ),
-                      )).toList(),
-                      onChanged: (value) {
-                        if (value != null) _loadNotes(value);
-                      },
+                        const SizedBox(width: 10),
+                        if (selectedClass != null)
+                          Text("Classe : $selectedClass", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 176, 217, 253))),
+                      ],
                     );
                   },
                 ),
                 const SizedBox(height: 20),
-                if (selectedClass != null)
-                  Text("Classe : $selectedClass", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
-                const SizedBox(height: 10),
                 if (notes.isNotEmpty)
                   Expanded(
                     child: SingleChildScrollView(
@@ -201,15 +252,20 @@ class NotesPageState extends State<NotesPage> {
                     ),
                   ),
                 const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: _exportToPDF,
-                  icon: const Icon(Icons.download, color: Colors.white),
-                  label: const Text("Exporter en PDF", style: TextStyle(color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
+                Row(
+                  children: [
+                    Spacer(),
+                    ElevatedButton.icon(
+                      onPressed: _exportToPDF,
+                      icon: const Icon(Icons.download, color: Colors.white),
+                      label: const Text("Exporter en PDF", style: TextStyle(color: Colors.white)),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                        textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
