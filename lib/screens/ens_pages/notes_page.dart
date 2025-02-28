@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '/services/matiere_service.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '/services/export_service.dart';
 import 'saisie_notes.dart';
 
@@ -12,33 +12,122 @@ class NotesPage extends StatefulWidget {
 }
 
 class NotesPageState extends State<NotesPage> {
-  String selectedClass = "GI";
+  String? selectedClass;
+  String? teacherDocId;
+  List<String> classNames = [];
+  List<Map<String, dynamic>> matieres = [];
+  List<Map<String, dynamic>> students = [];
   TextEditingController searchController = TextEditingController();
-  late MatiereService matiereService;
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    matiereService = Provider.of<MatiereService>(context, listen: false);
+  void initState() {
+    super.initState();
+    _findTeacherDocument();
   }
 
-  // Liste des étudiants avec leurs notes
-  List<Map<String, dynamic>> students = [
-    {"id": "GI001", "nom": "Mohamed", "prenom": "Ali", "notes": {}},
-    {"id": "GI002", "nom": "Ahmed", "prenom": "Fatima", "notes": {}},
-    {"id": "GI003", "nom": "Omar", "prenom": "Said", "notes": {}},
-    {"id": "ARI001", "nom": "Youssouf", "prenom": "Ali", "notes": {}},
-    {"id": "ARI002", "nom": "Amina", "prenom": "Salim", "notes": {}},
-  ];
+  Future<void> _findTeacherDocument() async {
+    String? uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    var querySnapshot = await FirebaseFirestore.instance
+        .collection('Enseignants')
+        .where('uid', isEqualTo: uid)
+        .limit(1)
+        .get();
+
+    if (querySnapshot.docs.isNotEmpty) {
+      setState(() {
+        teacherDocId = querySnapshot.docs.first.id;
+      });
+      _loadClassNames();
+    }
+  }
+
+  Future<void> _loadClassNames() async {
+    if (teacherDocId == null) return;
+
+    var snapshot = await FirebaseFirestore.instance
+        .collection('Enseignants')
+        .doc(teacherDocId)
+        .collection('Matieres')
+        .get();
+
+    setState(() {
+      classNames = snapshot.docs.map((doc) => doc.id).toList();
+      if (classNames.isNotEmpty) {
+        selectedClass = classNames.first;
+        _loadMatieres();
+        _loadStudents();
+      }
+    });
+  }
+
+  Future<void> _loadMatieres() async {
+    if (teacherDocId == null || selectedClass == null) return;
+
+    var doc = await FirebaseFirestore.instance
+        .collection('Enseignants')
+        .doc(teacherDocId)
+        .collection('Matieres')
+        .doc(selectedClass)
+        .get();
+
+    if (doc.exists) {
+      setState(() {
+        matieres = List<Map<String, dynamic>>.from(doc['matieres']);
+      });
+    }
+  }
+
+  Future<void> _loadStudents() async {
+    if (selectedClass == null) return;
+
+    var snapshot = await FirebaseFirestore.instance
+        .collection('Etudiants')
+        .where('classe', isEqualTo: selectedClass)
+        .get();
+
+    setState(() {
+      students = snapshot.docs.map((doc) {
+        var data = doc.data();
+        return {
+          'id': doc.id,
+          'nom': data['nom'],
+          'prenom': data['prenom'],
+          'notes': data['notes'] ?? {},
+        };
+      }).toList();
+    });
+
+    // Charger les notes des étudiants pour l'année scolaire en cours
+    await _loadStudentNotes();
+  }
+
+  Future<void> _loadStudentNotes() async {
+    for (var student in students) {
+      var doc = await FirebaseFirestore.instance
+          .collection('Etudiants')
+          .doc(student['id'])
+          .collection('Notes')
+          .orderBy('annee', descending: true)
+          .limit(1)
+          .get();
+
+      if (doc.docs.isNotEmpty) {
+        var notesData = doc.docs.first.data();
+        setState(() {
+          student['notes'] = notesData;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final matieres = Provider.of<MatiereService>(context).getMatieres(selectedClass);
-
     List<Map<String, dynamic>> filteredStudents = students
         .where((student) =>
             student["nom"]!.toLowerCase().contains(searchController.text.toLowerCase()) &&
-            student["id"]!.startsWith(selectedClass))
+            student["id"]!.startsWith(selectedClass!))
         .toList();
 
     return Scaffold(
@@ -69,11 +158,12 @@ class NotesPageState extends State<NotesPage> {
       padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildClassButton("GI"),
-          const SizedBox(width: 8),
-          _buildClassButton("ARI"),
-        ],
+        children: classNames.map((className) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4.0),
+            child: _buildClassButton(className),
+          );
+        }).toList(),
       ),
     );
   }
@@ -100,6 +190,8 @@ class NotesPageState extends State<NotesPage> {
       onPressed: () {
         setState(() {
           selectedClass = className;
+          _loadMatieres();
+          _loadStudents();
         });
       },
       style: ElevatedButton.styleFrom(
@@ -136,7 +228,7 @@ class NotesPageState extends State<NotesPage> {
             const DataColumn(label: Text("Code Étudiant", style: TextStyle(fontWeight: FontWeight.bold))),
             const DataColumn(label: Text("Nom & Prénom", style: TextStyle(fontWeight: FontWeight.bold))),
             ...matieres.map((matiere) => DataColumn(label: Text(
-              "${matiere["matiere"]} (Coef: ${matiere["coefficient"]})",
+              "${matiere["nom"]} (Coef: ${matiere["coef"]})",
               style: const TextStyle(fontWeight: FontWeight.bold),
             ))),
             const DataColumn(label: Text("Action", style: TextStyle(fontWeight: FontWeight.bold))),
@@ -147,7 +239,7 @@ class NotesPageState extends State<NotesPage> {
                 DataCell(Text(student["id"]!)),
                 DataCell(Text("${student["nom"]} ${student["prenom"]}")),
                 ...matieres.map((matiere) =>
-                  DataCell(Center(child: Text(student["notes"][matiere["matiere"]] ?? "-")))
+                  DataCell(Center(child: Text(student["notes"][matiere["nom"]] ?? "-")))
                 ),
                 DataCell(
                   Center(
