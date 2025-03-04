@@ -7,6 +7,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  web: ^1.1.0
+  js: ^0.6.3
   flutter_map: ^6.1.0
   flutter_animarker: ^3.2.0
   flutter_map_animated_marker: ^2.0.0
@@ -71,6 +73,8 @@ dependencies:
     sdk: flutter
   http: ^1.3.0
   translator: ^1.0.0
+  device_info_plus: ^11.3.2
+  geocoding: ^3.0.0
 firebase_database: ^10.0.0
 provider: ^6.0.3
 dev_dependencies:
@@ -86,3 +90,4 @@ flutter:
 
   assets:
   - lib/l10n/
+  - web/index.html

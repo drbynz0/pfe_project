@@ -1,7 +1,10 @@
+// ignore: unused_import
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'admin_web.dart';
 import 'generated/l10n.dart';
 import 'firebase_options.dart';
 import '/screens/login_page/login_page.dart';
@@ -15,22 +18,19 @@ import '/providers/locale_provider.dart';
 import '/providers/theme_provider.dart';
 import '/providers/trip_provider.dart';
 
-
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (context) => MatiereService()),
         ChangeNotifierProvider(create: (context) => LocaleProvider()..loadLocale()),
         ChangeNotifierProvider(create: (context) => ThemeProvider()..loadTheme()),
-        ChangeNotifierProvider(
-      create: (context) => TripProvider(),
-      child: const MyApp(),
-    ),
+        ChangeNotifierProvider(create: (context) => TripProvider()),
       ],
       child: const MyApp(),
     ),
@@ -60,6 +60,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       initialRoute: '/login',
       routes: {
+        '/admin': (context) => const AdminApp(),
         '/login': (context) => const LoginPage(),
         '/homeEns': (context) => const TeacherHomePage(),
         '/homeEtud': (context) => const EtudiantHomePage(),
@@ -67,7 +68,6 @@ class MyApp extends StatelessWidget {
         '/signup': (context) => const SignupPage(),
         '/resetPwd': (context) => const ResetPasswordPage(),
       },
-
     );
   }
 }

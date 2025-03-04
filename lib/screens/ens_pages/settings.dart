@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '/services/auth_service.dart';
 import '/services/modify_password_service.dart'; // Importez le service de modification de mot de passe
 import '/services/notification_service.dart'; // Importez le service de notifications
 import '/services/language_service.dart'; // Importez le service de langue
-import '/generated/l10n.dart'; // Importez les traductions générées
+import '/generated/l10n.dart';
 
 class SettingsPage extends StatefulWidget {
   final Function(Locale) onLocaleChange;
@@ -85,7 +86,9 @@ class SettingsPageState extends State<SettingsPage> {
               biometricAuthEnabled = value;
             });
           }),
-          _buildListTile(Icons.vpn_key, S.of(context).manageSessions, () {}),
+          _buildListTile(Icons.vpn_key, S.of(context).manageSessions, () {
+            _showManageSessionsDialog(context);
+          }),
           _buildListTile(Icons.policy, S.of(context).privacyPolicy, () {}),
 
           _buildSectionTitle(S.of(context).about),
@@ -128,7 +131,7 @@ class SettingsPageState extends State<SettingsPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         leading: Icon(icon, color: Colors.blue),
-        title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: Text(title, style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
         trailing: const Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -149,7 +152,7 @@ class SettingsPageState extends State<SettingsPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: SwitchListTile(
         secondary: Icon(icon, color: Colors.blue),
-        title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
         value: value,
         onChanged: onChanged,
       ),
@@ -160,26 +163,35 @@ class SettingsPageState extends State<SettingsPage> {
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(S.of(context).logout),
-        content: const Text("Voulez-vous vraiment vous déconnecter ?"),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Annuler"),
+      builder: (context) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            textTheme: const TextTheme(
+              bodyLarge: TextStyle(color: Colors.white),
+              bodyMedium: TextStyle(color: Colors.white),
+            ),
+            iconTheme: const IconThemeData(color: Colors.white),
+            cardColor: const Color(0xFF2E2E2E), dialogTheme: DialogThemeData(backgroundColor: const Color(0xFF1E1E1E)),
           ),
-          ElevatedButton(
-            onPressed: () async {
-              await FirebaseAuth.instance.signOut();
-              // ignore: use_build_context_synchronously
-              Navigator.pop(context);
-              // ignore: use_build_context_synchronously
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-            child: Text(S.of(context).logout),
+          child: AlertDialog(
+            title: Text(S.of(context).logout),
+            content: const Text("Voulez-vous vraiment vous déconnecter ?", style: TextStyle(color: Colors.white),),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Annuler"),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  AuthService.logout(context);
+                },
+                child: Text(S.of(context).logout),
+              ),
+            ],
           ),
-        ],
-      ),
+        );   
+        }
+
     );
   }
 
@@ -233,6 +245,100 @@ class SettingsPageState extends State<SettingsPage> {
               ],
             ),
           ),
+        );
+      },
+    );
+  }
+
+  /// Boîte de dialogue pour gérer les sessions
+  void _showManageSessionsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            textTheme: const TextTheme(
+              bodyLarge: TextStyle(color: Colors.white),
+              bodyMedium: TextStyle(color: Colors.white),
+            ),
+            iconTheme: const IconThemeData(color: Colors.white),
+            cardColor: const Color(0xFF2E2E2E), dialogTheme: DialogThemeData(backgroundColor: const Color(0xFF1E1E1E)),
+          ),
+          child: AlertDialog(
+            title: Text(S.of(context).manageSessions, style: TextStyle(color: Colors.white)),
+            content: FutureBuilder<List<Session>>(
+              future: AuthService.getActiveSessions(FirebaseAuth.instance.currentUser?.uid),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                  return const Text("Aucune session active trouvée.", style: TextStyle(color: Colors.white));
+                }
+                return StatefulBuilder(
+                  builder: (context, setState) {
+                    return SizedBox(
+                      width: double.maxFinite,
+                      height: 300,
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: snapshot.data!.length,
+                        itemBuilder: (context, index) {
+                          final session = snapshot.data![index];
+                          return ListTile(
+                            title: Text(session.deviceName, style: const TextStyle(color: Colors.white)),
+                            subtitle: Text('${session.lastActive}\n${session.devicePlatform}\n${session.deviceLocation}', style: const TextStyle(color: Colors.white70)),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.logout, color: Colors.red),
+                              onPressed: () {
+                                _showConfirmationDialog(context, () async {
+                                  await AuthService.logoutSession(session.sessionId, FirebaseAuth.instance.currentUser?.uid);
+                                  setState(() {
+                                    snapshot.data!.removeAt(index);
+                                  });
+                                });
+                              },
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Fermer"),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+  
+  void _showConfirmationDialog(BuildContext context, VoidCallback onConfirm) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text("Confirmation", style: TextStyle(color: Colors.white)),
+          content: const Text("Voulez-vous vraiment supprimer cette session ?"),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Annuler"),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                onConfirm();
+              },
+              child: const Text("Confirmer"),
+            ),
+          ],
         );
       },
     );

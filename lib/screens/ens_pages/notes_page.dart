@@ -16,7 +16,6 @@ class NotesPageState extends State<NotesPage> {
   String? teacherDocId;
   List<String> classNames = [];
   List<Map<String, dynamic>> matieres = [];
-  List<Map<String, dynamic>> students = [];
   TextEditingController searchController = TextEditingController();
 
   @override
@@ -57,7 +56,6 @@ class NotesPageState extends State<NotesPage> {
       if (classNames.isNotEmpty) {
         selectedClass = classNames.first;
         _loadMatieres();
-        _loadStudents();
       }
     });
   }
@@ -79,57 +77,8 @@ class NotesPageState extends State<NotesPage> {
     }
   }
 
-  Future<void> _loadStudents() async {
-    if (selectedClass == null) return;
-
-    var snapshot = await FirebaseFirestore.instance
-        .collection('Etudiants')
-        .where('classe', isEqualTo: selectedClass)
-        .get();
-
-    setState(() {
-      students = snapshot.docs.map((doc) {
-        var data = doc.data();
-        return {
-          'id': doc.id,
-          'nom': data['nom'],
-          'prenom': data['prenom'],
-          'notes': data['notes'] ?? {},
-        };
-      }).toList();
-    });
-
-    // Charger les notes des étudiants pour l'année scolaire en cours
-    await _loadStudentNotes();
-  }
-
-  Future<void> _loadStudentNotes() async {
-    for (var student in students) {
-      var doc = await FirebaseFirestore.instance
-          .collection('Etudiants')
-          .doc(student['id'])
-          .collection('Notes')
-          .orderBy('annee', descending: true)
-          .limit(1)
-          .get();
-
-      if (doc.docs.isNotEmpty) {
-        var notesData = doc.docs.first.data();
-        setState(() {
-          student['notes'] = notesData;
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    List<Map<String, dynamic>> filteredStudents = students
-        .where((student) =>
-            student["nom"]!.toLowerCase().contains(searchController.text.toLowerCase()) &&
-            student["id"]!.startsWith(selectedClass!))
-        .toList();
-
     return Scaffold(
       backgroundColor: const Color(0xFF082E4A),
       appBar: AppBar(
@@ -146,7 +95,7 @@ class NotesPageState extends State<NotesPage> {
         children: [
           _buildClassSelection(),
           _buildSearchBar(),
-          Expanded(child: _buildDataTable(filteredStudents, matieres)),
+          Expanded(child: _buildStudentStream()),
         ],
       ),
     );
@@ -174,8 +123,11 @@ class NotesPageState extends State<NotesPage> {
       child: TextField(
         controller: searchController,
         decoration: InputDecoration(
+          hintStyle: TextStyle(color: Colors.grey[400]),
+          filled: true,
+          fillColor: Colors.white,
           labelText: "Rechercher un élève",
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: const BorderSide(color: Colors.white)),
           prefixIcon: const Icon(Icons.search),
         ),
         onChanged: (value) {
@@ -191,7 +143,6 @@ class NotesPageState extends State<NotesPage> {
         setState(() {
           selectedClass = className;
           _loadMatieres();
-          _loadStudents();
         });
       },
       style: ElevatedButton.styleFrom(
@@ -205,7 +156,65 @@ class NotesPageState extends State<NotesPage> {
     );
   }
 
-  Widget _buildDataTable(List<Map<String, dynamic>> students, List<Map<String, dynamic>> matieres) {
+  // StreamBuilder pour écouter les changements dans Firestore
+  Widget _buildStudentStream() {
+    if (selectedClass == null) return const Center(child: Text("Veuillez sélectionner une classe"));
+
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('Etudiants')
+          .where('classe', isEqualTo: selectedClass)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (snapshot.hasError) {
+          return const Center(child: Text('Erreur de chargement des étudiants'));
+        }
+
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text('Aucun étudiant trouvé'));
+        }
+
+        var students = snapshot.data!.docs.map((doc) {
+          var data = doc.data() as Map<String, dynamic>;
+          var notes = data['Notes'] as Map<String, dynamic>? ?? {};
+          var anneeScolaire = data['annee_scolaire'];
+
+          // Récupérer les notes de l'année en cours
+          var notesAnneeEnCours = notes[anneeScolaire] ?? {};
+
+          // Filtrer les notes pour ne garder que celles des matières de l'enseignant
+          var filteredNotes = {};
+          for (var matiere in matieres) {
+            var nomMatiere = matiere["nom"];
+            if (notesAnneeEnCours.containsKey(nomMatiere)) {
+              filteredNotes[nomMatiere] = notesAnneeEnCours[nomMatiere];
+            }
+          }
+
+          return {
+            'id': doc.id,
+            'nom': data['nom'],
+            'prenom': data['prenom'],
+            'annee_scolaire': anneeScolaire,
+            'notes': filteredNotes,
+          };
+        }).toList();
+
+        return _buildDataTable(students);
+      },
+    );
+  }
+
+  Widget _buildDataTable(List<Map<String, dynamic>> students) {
+    List<Map<String, dynamic>> filteredStudents = students
+        .where((student) =>
+            student["nom"]!.toLowerCase().contains(searchController.text.toLowerCase()))
+        .toList();
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Container(
@@ -233,14 +242,13 @@ class NotesPageState extends State<NotesPage> {
             ))),
             const DataColumn(label: Text("Action", style: TextStyle(fontWeight: FontWeight.bold))),
           ],
-          rows: students.map((student) {
+          rows: filteredStudents.map((student) {
             return DataRow(
               cells: [
                 DataCell(Text(student["id"]!)),
                 DataCell(Text("${student["nom"]} ${student["prenom"]}")),
                 ...matieres.map((matiere) =>
-                  DataCell(Center(child: Text(student["notes"][matiere["nom"]] ?? "-")))
-                ),
+                  DataCell(Center(child: Text(student["notes"][matiere["nom"]] ?? "-")))),
                 DataCell(
                   Center(
                     child: ElevatedButton(
@@ -278,12 +286,12 @@ class NotesPageState extends State<NotesPage> {
           ListTile(
             leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
             title: const Text("Exporter en PDF"),
-            onTap: () => ExportService.exportToPDF(context, students),
+            onTap: () => ExportService.exportToPDF(context, []), // Mettre les étudiants ici
           ),
           ListTile(
             leading: const Icon(Icons.table_chart, color: Colors.green),
             title: const Text("Exporter en Excel"),
-            onTap: () => ExportService.exportToExcel(context, students),
+            onTap: () => ExportService.exportToExcel(context, []), // Mettre les étudiants ici
           ),
         ],
       ),

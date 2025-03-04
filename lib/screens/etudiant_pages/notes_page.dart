@@ -75,13 +75,16 @@ class NotesPageState extends State<NotesPage> {
   Future<List<String>> _loadYears() async {
     if (studentDocId == null) return [];
 
-    var snapshot = await FirebaseFirestore.instance
+    var doc = await FirebaseFirestore.instance
         .collection('Etudiants')
         .doc(studentDocId)
-        .collection('Notes')
         .get();
 
-    return snapshot.docs.map((doc) => doc.id).toList();
+    if (doc.exists && doc.data() != null) {
+      Map<String, dynamic> data = doc.data()!;
+      return data['Notes'] != null ? (data['Notes'] as Map<String, dynamic>).keys.toList() : [];
+    }
+    return [];
   }
 
   Future<void> _loadNotes(String year) async {
@@ -90,23 +93,31 @@ class NotesPageState extends State<NotesPage> {
     var doc = await FirebaseFirestore.instance
         .collection('Etudiants')
         .doc(studentDocId)
-        .collection('Notes')
-        .doc(year)
         .get();
 
     if (doc.exists && doc.data() != null) {
       Map<String, dynamic> data = doc.data()!;
-      String firstClass = data.keys.first;
-      setState(() {
-        selectedYear = year;
-        selectedClass = firstClass;
-        notes = Map<String, dynamic>.from(data[firstClass]);
-      });
+      
+      if (data['Notes'] is Map<String, dynamic> && data['Notes'][year] is List) {
+        List<dynamic> yearNotes = data['Notes'][year];
+
+        // Vérifie si la première entrée de la liste est bien une map
+        if (yearNotes.isNotEmpty && yearNotes[0] is Map<String, dynamic>) {
+          setState(() {
+            selectedYear = year;
+            notes = Map<String, dynamic>.from(yearNotes[0]);
+          });
+        } else {
+          const SnackBar(content: Text('Les données de l\'année ne sont pas au bon format.'));
+        }
+      } else {
+        SnackBar(content: Text('Aucune note disponible pour l\'année $year.'));
+      }
     }
   }
 
   Future<void> _exportToPDF() async {
-    if (selectedYear == null || selectedClass == null || notes.isEmpty) {
+    if (selectedYear == null || notes.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Aucune note à exporter.")),
       );
@@ -127,7 +138,6 @@ class NotesPageState extends State<NotesPage> {
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
             pw.Text("Année académique : $selectedYear", style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
-            pw.Text("Classe : $selectedClass", style: pw.TextStyle(fontSize: 16)),
             pw.SizedBox(height: 10),
             // ignore: deprecated_member_use
             pw.Table.fromTextArray(
@@ -198,9 +208,6 @@ class NotesPageState extends State<NotesPage> {
                             },
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        if (selectedClass != null)
-                          Text("Classe : $selectedClass", style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color.fromARGB(255, 176, 217, 253))),
                       ],
                     );
                   },
@@ -236,7 +243,6 @@ class NotesPageState extends State<NotesPage> {
                               headingRowColor: WidgetStateProperty.resolveWith<Color?>(
                                 (Set<WidgetState> states) => Colors.blue[200],
                               ),
-                              dataRowColor: WidgetStateColor.resolveWith((states) => Colors.black54),
                               columns: const [
                                 DataColumn(label: Text("Matière", style: TextStyle(fontWeight: FontWeight.bold, color: Color.fromARGB(255, 0, 0, 0)))),
                                 DataColumn(label: Text("Note", style: TextStyle(fontWeight: FontWeight.bold, color: Color.fromARGB(255, 0, 0, 0)))),
@@ -254,7 +260,7 @@ class NotesPageState extends State<NotesPage> {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    Spacer(),
+                    const Spacer(),
                     ElevatedButton.icon(
                       onPressed: _exportToPDF,
                       icon: const Icon(Icons.download, color: Colors.white),

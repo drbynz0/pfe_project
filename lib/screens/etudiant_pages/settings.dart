@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '/services/auth_service.dart';
+
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -118,8 +120,7 @@ class SettingsPageState extends State<SettingsPage> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
-              Navigator.pushReplacementNamed(context, '/login');
+                AuthService.logout(context);
             },
             child: const Text("Déconnexion"),
           ),

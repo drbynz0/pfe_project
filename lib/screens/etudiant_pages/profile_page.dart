@@ -9,7 +9,7 @@ class ProfilePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF1E293B), // Fond sombre
+      backgroundColor: const Color(0xFF1E293B),
       appBar: AppBar(
         title: const Text(
           'Profil',
@@ -126,10 +126,20 @@ class ProfilePage extends StatelessWidget {
 
                           var matieresData = matieresSnapshot.data!.data() as Map<String, dynamic>;
 
-                          // Récupérer les matières
-                          List<Map<String, dynamic>> matieresList = List<Map<String, dynamic>>.from(matieresData['matieres']);
+                          // Vérifier si le champ 'matieres' existe et n'est pas null
+                          if (matieresData['matieres'] != null) {
+                            // Récupérer les matières
+                            List<Map<String, dynamic>> matieresList = List<Map<String, dynamic>>.from(matieresData['matieres']);
 
-                          return _classeCard(classe, matieresList);
+                            return _classeCard(classe, matieresList);
+                          } else {
+                            return const Center(
+                              child: Text(
+                                "Aucune matière trouvée",
+                                style: TextStyle(color: Colors.white, fontSize: 16),
+                              ),
+                            );
+                          }
                         },
                       );
                     },

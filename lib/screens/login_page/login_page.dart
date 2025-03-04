@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '/services/auth_service.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -21,6 +22,7 @@ class LoginPageState extends State<LoginPage> {
     });
 
     String identifiant = _idController.text.trim();
+
     try {
       DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection("Users").doc(identifiant).get();
 
@@ -28,7 +30,7 @@ class LoginPageState extends State<LoginPage> {
         String email = userDoc.get("email");
 
         if (!_isEmailValid(email)) {
-          _showErrorDialog("Veuillez saisir un email valide.");
+          showErrorDialog("Veuillez saisir un email valide.");
           setState(() {
             _isLoading = false;
           });
@@ -43,45 +45,21 @@ class LoginPageState extends State<LoginPage> {
         User? user = userCredential.user;
         if (user != null && !user.emailVerified) {
           await FirebaseAuth.instance.signOut();
-          _showErrorDialog("Veuillez vérifier votre email avant de vous connecter.");
+          showErrorDialog("Veuillez vérifier votre email avant de vous connecter.");
           setState(() {
             _isLoading = false;
           });
           return;
         }
-
+        // ignore: use_build_context_synchronously
+        AuthService.login(context, userDoc, identifiant, _isLoading, _idController);
+        await AuthService.createSession(identifiant);
         // Récupérer le rôle dans Firestore
-        userDoc = await FirebaseFirestore.instance.collection('Users').doc(identifiant).get();
-
-        if (userDoc.exists) {
-          String userType = userDoc['type'];
-
-          if (userType == 'enseignant') {
-            Navigator.pushReplacementNamed(
-              // ignore: use_build_context_synchronously
-              context,
-              '/homeEns',
-            );
-          } else if (userType == 'etudiant') {
-            // ignore: use_build_context_synchronously
-            Navigator.pushReplacementNamed(context, '/homeEtud');
-          } else if (userType == 'conducteur') {
-            // ignore: use_build_context_synchronously
-            Navigator.pushReplacementNamed(context, '/homeCond');
-          } else if (userType == 'parent') {
-            // ignore: use_build_context_synchronously
-            Navigator.pushReplacementNamed(context, '/homePar');
-          } else {
-            _showErrorDialog("Type d'utilisateur inconnu");
-          }
-        } else {
-          _showErrorDialog("Utilisateur non trouvé");
-        }
       } else {
-        _showErrorDialog("Utilisateur non trouvé");
+        showErrorDialog("Utilisateur non trouvé");
       }
     } on FirebaseAuthException catch (e) {
-      _showErrorDialog(e.message ?? 'Erreur de connexion');
+      showErrorDialog(e.message ?? 'Erreur de connexion');
     } finally {
       setState(() {
         _isLoading = false;
@@ -95,7 +73,7 @@ class LoginPageState extends State<LoginPage> {
   }
 
   // Fonction pour afficher une boîte de dialogue en cas d'erreur
-  void _showErrorDialog(String message) {
+  void showErrorDialog(String message) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

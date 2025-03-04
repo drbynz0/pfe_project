@@ -71,7 +71,7 @@ class TeacherHomePageState extends State<TeacherHomePage> {
                   ),
                 );
               } else if (value == 'logout') {
-                AuthService.logout(context);
+                _showLogoutDialog(context);
               }
             },
             itemBuilder: (context) => [
@@ -185,4 +185,42 @@ class TeacherHomePageContent extends StatelessWidget {
       ],
     );
   }
+
+
 }
+
+  void _showLogoutDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return Theme(
+          data: ThemeData.dark().copyWith(
+            textTheme: const TextTheme(
+              bodyLarge: TextStyle(color: Colors.white),
+              bodyMedium: TextStyle(color: Colors.white),
+            ),
+            iconTheme: const IconThemeData(color: Colors.white),
+            cardColor: const Color(0xFF2E2E2E), dialogTheme: DialogThemeData(backgroundColor: const Color(0xFF1E1E1E)),
+          ),
+          child: AlertDialog(
+            title: Text(S.of(context).logout),
+            content: const Text("Voulez-vous vraiment vous déconnecter ?", style: TextStyle(color: Colors.white),),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Annuler"),
+              ),
+              ElevatedButton(
+                onPressed: () async {
+                  AuthService.logout(context);
+                },
+                child: Text(S.of(context).logout),
+              ),
+            ],
+          ),
+        );   
+        }
+
+    );
+  }
+
