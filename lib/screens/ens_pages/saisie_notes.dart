@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class SaisieNotesPage extends StatefulWidget {
   final Map<String, dynamic> student;
@@ -21,21 +22,21 @@ class SaisieNotesPageState extends State<SaisieNotesPage> {
   }
 
   void _initializeNotes() {
-      for (var matiere in widget.matieres) {
-    String nomMatiere = matiere["matiere"];
-    var storedNotes = widget.student["notes"][nomMatiere];
+    for (var matiere in widget.matieres) {
+      String nomMatiere = matiere["nom"]; // Utiliser "nom" au lieu de "matiere"
+      var storedNotes = widget.student["notes"][nomMatiere];
 
-    if (storedNotes is String) {
-      // Si la valeur est une String (ex: "13.5"), on la convertit en liste [13.5]
-      notes[nomMatiere] = [double.tryParse(storedNotes) ?? 0.0];
-    } else if (storedNotes is List) {
-      // Si c'est déjà une liste, on la garde
-      notes[nomMatiere] = List<double>.from(storedNotes.map((e) => double.tryParse(e.toString()) ?? 0.0));
-    } else {
-      // Si aucune note n'est enregistrée, on initialise une liste vide
-      notes[nomMatiere] = [];
+      if (storedNotes is String) {
+        // Si la valeur est une String (ex: "13.5"), on la convertit en liste [13.5]
+        notes[nomMatiere] = [double.tryParse(storedNotes) ?? 0.0];
+      } else if (storedNotes is List) {
+        // Si c'est déjà une liste, on la garde
+        notes[nomMatiere] = List<double>.from(storedNotes.map((e) => double.tryParse(e.toString()) ?? 0.0));
+      } else {
+        // Si aucune note n'est enregistrée, on initialise une liste vide
+        notes[nomMatiere] = [];
+      }
     }
-  }
   }
 
   void _ajouterNote(String matiere) {
@@ -49,14 +50,26 @@ class SaisieNotesPageState extends State<SaisieNotesPage> {
     return notes.reduce((a, b) => a + b) / notes.length;
   }
 
-void _enregistrerNotes() {
-  Map<String, String> sousMoyennes = {}; // Change le type de double à String
-  for (var matiere in widget.matieres) {
-    sousMoyennes[matiere["matiere"]] = _calculerSousMoyenne(notes[matiere["matiere"]]!).toString();
-  }
-  Navigator.pop(context, sousMoyennes);
-}
+  Future<void> _enregistrerNotes() async {
+    Map<String, dynamic> updatedNotes = {};
 
+    for (var matiere in widget.matieres) {
+      String nomMatiere = matiere["nom"];
+      updatedNotes[nomMatiere] = notes[nomMatiere];
+    }
+
+    // Mettre à jour Firestore
+    await FirebaseFirestore.instance
+        .collection('Etudiants')
+        .doc(widget.student['id'])
+        .update({
+          'Notes.${widget.student['annee_scolaire']}': updatedNotes,
+        });
+
+    // Retourner les notes mises à jour à la page précédente
+    // ignore: use_build_context_synchronously
+    Navigator.pop(context, updatedNotes);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,7 +90,7 @@ void _enregistrerNotes() {
               Tab(text: "Consultation des Notes"),
             ],
           ),
-         iconTheme: const IconThemeData(color: Colors.white),
+          iconTheme: const IconThemeData(color: Colors.white),
         ),
         body: TabBarView(
           children: [
@@ -94,7 +107,7 @@ void _enregistrerNotes() {
       padding: const EdgeInsets.all(16),
       children: [
         ...widget.matieres.map((matiere) {
-          String nomMatiere = matiere["matiere"];
+          String nomMatiere = matiere["nom"];
           return Card(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             margin: const EdgeInsets.only(bottom: 16),
@@ -104,7 +117,7 @@ void _enregistrerNotes() {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    "$nomMatiere (Coef: ${matiere["coefficient"]})",
+                    "$nomMatiere (Coef: ${matiere["coef"]})",
                     style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
@@ -166,7 +179,6 @@ void _enregistrerNotes() {
     );
   }
 
-  /// **Section Consultation des Notes**
   Widget _buildConsultationNotes() {
     return SingleChildScrollView(
       child: Padding(
@@ -204,7 +216,6 @@ void _enregistrerNotes() {
     );
   }
 
-  /// **En-tête du bulletin**
   TableRow _buildTableHeader() {
     return TableRow(
       decoration: BoxDecoration(color: Colors.blue[200]),
@@ -216,9 +227,8 @@ void _enregistrerNotes() {
     );
   }
 
-  /// **Lignes du bulletin**
   TableRow _buildTableRow(Map<String, dynamic> matiere) {
-    String nomMatiere = matiere["matiere"];
+    String nomMatiere = matiere["nom"];
     List<double> notesList = notes[nomMatiere]!;
     String notesStr = notesList.isEmpty ? "-" : notesList.map((n) => n.toStringAsFixed(1)).join(", ");
     double sousMoyenne = _calculerSousMoyenne(notesList);

@@ -157,7 +157,7 @@ class NotesPageState extends State<NotesPage> {
   }
 
   // StreamBuilder pour écouter les changements dans Firestore
-  Widget _buildStudentStream() {
+ Widget _buildStudentStream() {
     if (selectedClass == null) return const Center(child: Text("Veuillez sélectionner une classe"));
 
     return StreamBuilder<QuerySnapshot>(
@@ -181,17 +181,20 @@ class NotesPageState extends State<NotesPage> {
         var students = snapshot.data!.docs.map((doc) {
           var data = doc.data() as Map<String, dynamic>;
           var notes = data['Notes'] as Map<String, dynamic>? ?? {};
-          var anneeScolaire = data['annee_scolaire'];
+          var anneeScolaire = data['annee_scolaire'] ?? "Inconnue"; // Sécurité si null
 
-          // Récupérer les notes de l'année en cours
-          var notesAnneeEnCours = notes[anneeScolaire] ?? {};
+          // Vérifier si les notes de l'année existent bien
+          var notesAnneeEnCours = notes[anneeScolaire] is Map<String, dynamic> 
+            ? notes[anneeScolaire] as Map<String, dynamic> 
+            : {};
 
-          // Filtrer les notes pour ne garder que celles des matières de l'enseignant
-          var filteredNotes = {};
+          // Filtrer les notes pour ne garder que celles des matières enseignées
+          Map<String, dynamic> filteredNotes = {};
           for (var matiere in matieres) {
-            var nomMatiere = matiere["nom"];
-            if (notesAnneeEnCours.containsKey(nomMatiere)) {
-              filteredNotes[nomMatiere] = notesAnneeEnCours[nomMatiere];
+            String matiereNom = matiere["nom"]; // Récupérer le nom de la matière
+
+            if (notesAnneeEnCours is Map<String, dynamic> && notesAnneeEnCours.containsKey(matiereNom)) {
+              filteredNotes[matiereNom] = notesAnneeEnCours[matiereNom];
             }
           }
 
