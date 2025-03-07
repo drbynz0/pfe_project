@@ -23,24 +23,22 @@ class SaisieNotesPageState extends State<SaisieNotesPage> {
 
   void _initializeNotes() {
     for (var matiere in widget.matieres) {
-      String nomMatiere = matiere["nom"]; // Utiliser "nom" au lieu de "matiere"
-      var storedNotes = widget.student["notes"][nomMatiere];
+      String nomMatiere = matiere["nom"];
+      var storedNote = widget.student["notes"][nomMatiere];
 
-      if (storedNotes is String) {
-        // Si la valeur est une String (ex: "13.5"), on la convertit en liste [13.5]
-        notes[nomMatiere] = [double.tryParse(storedNotes) ?? 0.0];
-      } else if (storedNotes is List) {
-        // Si c'est déjà une liste, on la garde
-        notes[nomMatiere] = List<double>.from(storedNotes.map((e) => double.tryParse(e.toString()) ?? 0.0));
+      if (storedNote is String || storedNote is double) {
+        // Si une note est déjà enregistrée, on la stocke
+        notes[nomMatiere] = [double.tryParse(storedNote.toString()) ?? 0.0];
       } else {
-        // Si aucune note n'est enregistrée, on initialise une liste vide
-        notes[nomMatiere] = [];
+        // Sinon, on initialise avec une note vide
+        notes[nomMatiere] = [0.0];
       }
     }
   }
 
   void _ajouterNote(String matiere) {
     setState(() {
+      const SizedBox(height: 10);
       notes[matiere]!.add(0.0);
     });
   }
@@ -51,14 +49,14 @@ class SaisieNotesPageState extends State<SaisieNotesPage> {
   }
 
   Future<void> _enregistrerNotes() async {
-    Map<String, dynamic> updatedNotes = {};
+    Map<String, String> updatedNotes = {};
 
     for (var matiere in widget.matieres) {
       String nomMatiere = matiere["nom"];
-      updatedNotes[nomMatiere] = notes[nomMatiere];
+      double sousMoyenne = _calculerSousMoyenne(notes[nomMatiere]!);
+      updatedNotes[nomMatiere] = sousMoyenne.toStringAsFixed(2);    
     }
 
-    // Mettre à jour Firestore
     await FirebaseFirestore.instance
         .collection('Etudiants')
         .doc(widget.student['id'])
@@ -66,7 +64,6 @@ class SaisieNotesPageState extends State<SaisieNotesPage> {
           'Notes.${widget.student['annee_scolaire']}': updatedNotes,
         });
 
-    // Retourner les notes mises à jour à la page précédente
     // ignore: use_build_context_synchronously
     Navigator.pop(context, updatedNotes);
   }
@@ -123,6 +120,7 @@ class SaisieNotesPageState extends State<SaisieNotesPage> {
                   const SizedBox(height: 10),
                   ...notes[nomMatiere]!.asMap().entries.map((entry) {
                     int index = entry.key;
+                  
                     return Row(
                       children: [
                         Expanded(
@@ -202,7 +200,6 @@ class SaisieNotesPageState extends State<SaisieNotesPage> {
                 columnWidths: const {
                   0: FlexColumnWidth(2),
                   1: FlexColumnWidth(1),
-                  2: FlexColumnWidth(1),
                 },
                 children: [
                   _buildTableHeader(),
@@ -221,7 +218,6 @@ class SaisieNotesPageState extends State<SaisieNotesPage> {
       decoration: BoxDecoration(color: Colors.blue[200]),
       children: const [
         Padding(padding: EdgeInsets.all(8), child: Text("Matière", style: TextStyle(fontWeight: FontWeight.bold))),
-        Padding(padding: EdgeInsets.all(8), child: Text("Notes", style: TextStyle(fontWeight: FontWeight.bold))),
         Padding(padding: EdgeInsets.all(8), child: Text("Sous-moyenne", style: TextStyle(fontWeight: FontWeight.bold))),
       ],
     );
@@ -229,14 +225,11 @@ class SaisieNotesPageState extends State<SaisieNotesPage> {
 
   TableRow _buildTableRow(Map<String, dynamic> matiere) {
     String nomMatiere = matiere["nom"];
-    List<double> notesList = notes[nomMatiere]!;
-    String notesStr = notesList.isEmpty ? "-" : notesList.map((n) => n.toStringAsFixed(1)).join(", ");
-    double sousMoyenne = _calculerSousMoyenne(notesList);
+    double sousMoyenne = _calculerSousMoyenne(notes[nomMatiere]!);
 
     return TableRow(
       children: [
         Padding(padding: const EdgeInsets.all(8), child: Text(nomMatiere)),
-        Padding(padding: const EdgeInsets.all(8), child: Text(notesStr)),
         Padding(padding: const EdgeInsets.all(8), child: Text(sousMoyenne.toStringAsFixed(2))),
       ],
     );
