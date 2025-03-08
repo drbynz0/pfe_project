@@ -134,7 +134,7 @@ class ChatPageState extends State<ChatPage> {
         ),
         if (isMe)
           Positioned(
-            left: 0,
+            right: 0,
             child: PopupMenuButton<String>(
               icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
               onSelected: (value) {

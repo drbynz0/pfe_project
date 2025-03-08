@@ -57,17 +57,12 @@ class ChatgroupPageState extends State<ChatgroupPage> {
     if (widget.chatId.contains('_')) {
       List<String> ids = widget.chatId.split('_');
       if (ids.length == 2) {
-        for(int i = 0; i < ids.length; i++) {
-          if (ids[i] != currentUserId && ids[i] != "group") {
-            receiverId = ids[i];
-            break;
-          }
-        }
+        receiverId = ids[0] == currentUserId ? ids[1] : ids[0];
       }
     }
   }
 
-  Future<String> _getUserInfo(String? userId) async {
+    Future<String> _getUserInfo(String? userId) async {
     DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(userId).get();
 
     if (userDoc.exists) {
@@ -148,7 +143,6 @@ class ChatgroupPageState extends State<ChatgroupPage> {
       ),
     );
   }
-
   Widget _buildTextMessage(DocumentSnapshot message, bool isMe) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -174,7 +168,7 @@ class ChatgroupPageState extends State<ChatgroupPage> {
                     );
                   },
                 ),
-              Text(
+                Text(
                 message["text"],
                 style: TextStyle(color: isMe ? Colors.white : Colors.black),
                 softWrap: true,
@@ -370,29 +364,62 @@ class ChatgroupPageState extends State<ChatgroupPage> {
     }
   }
 
-  void _uploadFile() async {
-    if (selectedFile == null) return;
+void _uploadFile() async {
+  if (selectedFile == null) return;
 
-    String fileName = selectedFile!.name; // ✅ Récupérer le nom du fichier sans erreur
-    Reference storageRef = FirebaseStorage.instance.ref().child('chat_files/${widget.chatId}/$fileName');
+  String fileName = selectedFile!.name; // ✅ Récupérer le nom du fichier sans erreur
+  Reference storageRef = FirebaseStorage.instance.ref().child('chat_files/${widget.chatId}/$fileName');
 
-    UploadTask uploadTask;
+  UploadTask uploadTask;
 
-    if (kIsWeb) {
-      // ✅ Web : Utiliser Blob
-      Uint8List? fileBytes = selectedFile!.bytes;
-      if (fileBytes == null) return;
+  if (kIsWeb) {
+    // ✅ Web : Utiliser Blob
+    Uint8List? fileBytes = selectedFile!.bytes;
+    if (fileBytes == null) return;
 
-      final blob = html.Blob([fileBytes]);
-      uploadTask = storageRef.putBlob(blob);
-    } else {
-      // ✅ Mobile : Utiliser File
-      File file = File(selectedFile!.path!);
-      uploadTask = storageRef.putFile(file);
-    }
+    final blob = html.Blob([fileBytes]);
+    uploadTask = storageRef.putBlob(blob);
+  } else {
+    // ✅ Mobile : Utiliser File
+    File file = File(selectedFile!.path!);
+    uploadTask = storageRef.putFile(file);
+  }
 
-    TaskSnapshot taskSnapshot = await uploadTask;
-    String downloadUrl = await taskSnapshot.ref.getDownloadURL();
+  TaskSnapshot taskSnapshot = await uploadTask;
+  String downloadUrl = await taskSnapshot.ref.getDownloadURL();
+
+  await FirebaseFirestore.instance
+      .collection("Chats")
+      .doc(widget.recipientName)
+      .collection("messages")
+      .add({
+    "sender_id": currentUserId,
+    "receiver_id": widget.recipientName,
+    "text": "",
+    "file_url": downloadUrl,
+    "file_name": fileName,
+    "timestamp": FieldValue.serverTimestamp(),
+    "isRead": false,
+  });
+
+  setState(() {
+    selectedFile = null;
+  });
+}
+
+Future<void> pickFile() async {
+  FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+  if (result != null) {
+    selectedFile = result.files.first; // ✅ Stocker correctement le fichier
+  }
+}
+
+  void _sendMessage() async {
+    String messageText = messageController.text.trim();
+    if (messageText.isEmpty) return;
+
+    if (currentUserId == null || receiverId == null) return;
 
     await FirebaseFirestore.instance
         .collection("Chats")
@@ -400,69 +427,11 @@ class ChatgroupPageState extends State<ChatgroupPage> {
         .collection("messages")
         .add({
       "sender_id": currentUserId,
-      "receiver_id": receiverId,
-      "text": "",
-      "file_url": downloadUrl,
-      "file_name": fileName,
+      "receiver_id": widget.recipientName,
+      "text": messageText,
       "timestamp": FieldValue.serverTimestamp(),
       "isRead": false,
     });
-
-    setState(() {
-      selectedFile = null;
-    });
-  }
-
-  Future<void> pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-
-    if (result != null) {
-      selectedFile = result.files.first;
-    }
-  }
-
-  void _sendMessage() async {
-    String messageText = messageController.text.trim();
-    if (messageText.isEmpty) return;
-
-    if (currentUserId == null) return;
-
-    // Vérifiez si la collection de messages est vide
-    DocumentReference chatDocRef = FirebaseFirestore.instance.collection("Chats").doc(widget.chatId);
-    CollectionReference messagesCollectionRef = chatDocRef.collection("messages");
-
-    DocumentSnapshot chatDocSnapshot = await chatDocRef.get();
-    QuerySnapshot messageSnapshot = await messagesCollectionRef.get();
-
-    if (!chatDocSnapshot.exists) {
-      // Créez le document de chat s'il n'existe pas
-      await chatDocRef.set({
-        'participants': [currentUserId, widget.recipientName],
-        'isGroup': true,
-        'groupName': widget.recipientName,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-    }
-
-    if (messageSnapshot.docs.isEmpty) {
-      // Créez le premier message
-      await messagesCollectionRef.add({
-        "sender_id": currentUserId,
-        "receiver_id": receiverId,
-        "text": messageText,
-        "timestamp": FieldValue.serverTimestamp(),
-        "isRead": false,
-      });
-    } else {
-      // Ajoutez le message à la collection de messages
-      await messagesCollectionRef.add({
-        "sender_id": currentUserId,
-        "receiver_id": widget.recipientName,
-        "text": messageText,
-        "timestamp": FieldValue.serverTimestamp(),
-        "isRead": false,
-      });
-    }
 
     messageController.clear();
   }

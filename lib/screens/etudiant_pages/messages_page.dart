@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chat_page.dart';
+import 'chatgroup_page.dart';
 
 class MessagesPage extends StatefulWidget {
   const MessagesPage({super.key});
@@ -14,6 +15,7 @@ class MessagesPage extends StatefulWidget {
 class MessagesPageState extends State<MessagesPage> {
   TextEditingController searchController = TextEditingController();
   String? currentUserId;
+  String? classe;
 
   @override
   void initState() {
@@ -35,21 +37,41 @@ class MessagesPageState extends State<MessagesPage> {
         setState(() {
           currentUserId = userSnapshot.docs.first.id;
         });
+        _fetchClasse();
       }
     }
   }
 
-  Future<Map<String, String>> _getRecipientInfo(String chatId) async {
-    String recipientId = chatId.split('_').firstWhere((id) => id != currentUserId);
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(recipientId).get();
+  Future<void> _fetchClasse() async {
+    if (currentUserId == null) return;
+    DocumentSnapshot classSnapshot = await FirebaseFirestore.instance
+        .collection('Etudiants')
+        .doc(currentUserId)
+        .get();
 
-    if (userDoc.exists) {
-      String nom = userDoc['nom'];
-      String prenom = userDoc['prenom'];
-      String type = userDoc['type'];
-      return {'nom': nom, 'prenom': prenom, 'type': type};
+    setState(() {
+      classe = classSnapshot['classe'];
+    });
+  }
+
+  Future<Map<String, String>> _getRecipientInfo(String chatId) async {
+    if (chatId.contains('group')) {
+      // Conversation de groupe
+      String className = chatId.split('_')[1]; // Supposons que le nom de la classe est la deuxième partie de chatId
+      return {'nom': className, 'prenom': '', 'type': 'Classe'};
     } else {
-      return {'nom': 'Inconnu', 'prenom': '', 'type': ''};
+      // Conversation individuelle
+      String recipientId = chatId.split('_').firstWhere((id) => id != currentUserId);
+      DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(recipientId).get();
+
+      if (userDoc.exists) {
+        String nom = userDoc['nom'];
+        String prenom = userDoc['prenom'];
+        String type = userDoc['type'];
+        return {'nom': nom, 'prenom': prenom, 'type': type};
+      } else {
+        return {'nom': 'Inconnu', 'prenom': '', 'type': ''};
+      }
     }
   }
 
@@ -64,11 +86,12 @@ class MessagesPageState extends State<MessagesPage> {
       body: Column(
         children: [
           _buildSearchBar(),
+          _buildClassStatus(),
           Expanded(child: _buildConversationList()),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {},
+        onPressed: () => _showNewMessageOptions(context),
         backgroundColor: Colors.blue,
         child: const Icon(Icons.message, color: Colors.white),
       ),
@@ -93,13 +116,45 @@ class MessagesPageState extends State<MessagesPage> {
     );
   }
 
+  Widget _buildClassStatus() {
+    if (classe == null) {
+      return const SizedBox.shrink();
+    }
+
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChatgroupPage(chatId: "${currentUserId}_${classe}_group", recipientName: classe ?? ''),
+          ),
+        );
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min, // Ajouté pour éviter le problème de hauteur illimitée
+          children: [
+            CircleAvatar(
+              radius: 30,
+              backgroundColor: Colors.blue,
+              child: Text(classe ?? '', style: const TextStyle(color: Colors.white, fontSize: 20)),
+            ),
+            const SizedBox(height: 5),
+            Text(classe ?? '', style: const TextStyle(color: Colors.white)),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildConversationList() {
     if (currentUserId == null) {
       return const Center(child: CircularProgressIndicator());
     }
 
     return StreamBuilder(
-      stream: FirebaseFirestore.instance.collection('Chats').snapshots(),
+      stream: FirebaseFirestore.instance.collection('Users').doc(currentUserId).collection('UserChats').snapshots(),
       builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -108,15 +163,15 @@ class MessagesPageState extends State<MessagesPage> {
           return const Center(child: Text("Aucune conversation", style: TextStyle(color: Colors.white)));
         }
 
-        var conversations = snapshot.data!.docs.where((doc) {
-          return doc.id.contains(currentUserId!);
-        }).toList();
+        var conversations = snapshot.data!.docs;
 
         return ListView.builder(
           itemCount: conversations.length,
           itemBuilder: (context, index) {
             var conversation = conversations[index];
-            var chatId = conversation.id;
+            var chatId = conversation['chatId'];
+            var isGroup = conversation['isGroup'];
+            var groupName = conversation['groupName'];
 
             return FutureBuilder<Map<String, String>>(
               future: _getRecipientInfo(chatId),
@@ -129,7 +184,7 @@ class MessagesPageState extends State<MessagesPage> {
                 }
 
                 var recipientInfo = recipientSnapshot.data!;
-                var recipientName = "${recipientInfo['nom']} ${recipientInfo['prenom']}";
+                var recipientName = isGroup ? groupName : "${recipientInfo['nom']} ${recipientInfo['prenom']}";
                 var recipientType = recipientInfo['type'];
 
                 return StreamBuilder(
@@ -181,6 +236,111 @@ class MessagesPageState extends State<MessagesPage> {
                   },
                 );
               },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showNewMessageOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (context) {
+        return Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.group, color: Colors.green),
+              title: const Text("Enseignant"),
+              onTap: () {
+                Navigator.pop(context);
+                _showTeacherSelection(context);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.business, color: Colors.red),
+              title: const Text("Administration"),
+              onTap: () {
+                Navigator.push(context,
+                MaterialPageRoute(builder: (context) => ChatPage(chatId: "${currentUserId}_admin", recipientName: "Administration"))
+              );
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showTeacherSelection(BuildContext context) {
+    TextEditingController searchController = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                    controller: searchController,
+                    decoration: const InputDecoration(
+                      labelText: "Rechercher un enseignant",
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                    onChanged: (value) {
+                      setState(() {});
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: FutureBuilder<QuerySnapshot>(
+                    future: FirebaseFirestore.instance.collection('Enseignants').get(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(child: Text("Aucun enseignant trouvé"));
+                      }
+
+                      var teachers = snapshot.data!.docs.where((teacher) {
+                        var teacherName = "${teacher['nom']} ${teacher['prenom']}";
+                        return teacherName.toLowerCase().contains(searchController.text.toLowerCase());
+                      }).toList();
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: teachers.length,
+                        itemBuilder: (context, index) {
+                          var teacher = teachers[index];
+                          var teacherName = "${teacher['nom']} ${teacher['prenom']}";
+
+                          return ListTile(
+                            title: Text(teacherName, style: const TextStyle(color: Colors.black)),
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChatPage(
+                                    chatId: "${currentUserId}_${teacher.id}",
+                                    recipientName: teacherName,
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
             );
           },
         );

@@ -6,6 +6,7 @@ import 'messages_page.dart';
 import 'settings.dart';
 import '/widgets/custom_card.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '/providers/locale_provider.dart';
 import '/generated/l10n.dart';
 import '/screens/ens_pages/profile_page.dart';
@@ -19,20 +20,40 @@ class TeacherHomePage extends StatefulWidget {
 
 class TeacherHomePageState extends State<TeacherHomePage> {
   int _selectedIndex = 0;
+  String? currentUserId;
 
   final List<Widget> _pages = [];
 
   @override
   void initState() {
     super.initState();
-    _pages.addAll([
-      const TeacherHomePageContent(),
-      const NotesPage(),
-      const MessagesPage(),
-      SettingsPage(onLocaleChange: (locale) {
-        Provider.of<LocaleProvider>(context, listen: false).setLocale(locale);
-      }),
-    ]);
+    _getCurrentUserId();
+  }
+
+  Future<void> _getCurrentUserId() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      String uid = user.uid;
+      QuerySnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .where('uid', isEqualTo: uid)
+          .limit(1)
+          .get();
+
+      if (userSnapshot.docs.isNotEmpty) {
+        setState(() {
+          currentUserId = userSnapshot.docs.first.id;
+          _pages.addAll([
+            TeacherHomePageContent(teacherId: currentUserId),
+            const NotesPage(),
+            const MessagesPage(),
+            SettingsPage(onLocaleChange: (locale) {
+              Provider.of<LocaleProvider>(context, listen: false).setLocale(locale);
+            }),
+          ]);
+        });
+      }
+    }
   }
 
   void _onItemTapped(int index) {
@@ -43,7 +64,7 @@ class TeacherHomePageState extends State<TeacherHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final String? teacherId = FirebaseAuth.instance.currentUser?.uid;
+    final String? teacherId = currentUserId;
 
     return Scaffold(
       backgroundColor: const Color(0xFF082E4A),
@@ -87,7 +108,9 @@ class TeacherHomePageState extends State<TeacherHomePage> {
           ),
         ],
       ),
-      body: _pages[_selectedIndex],
+      body: _pages.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
@@ -119,57 +142,131 @@ class TeacherHomePageState extends State<TeacherHomePage> {
 }
 
 class TeacherHomePageContent extends StatelessWidget {
-  const TeacherHomePageContent({super.key});
+  final String? teacherId;
+
+  const TeacherHomePageContent({super.key, required this.teacherId});
+
+  Future<Map<String, int>> _getStudentCounts(List<String> classNames) async {
+    Map<String, int> studentCounts = {};
+    QuerySnapshot studentSnapshot = await FirebaseFirestore.instance.collection('Etudiants').get();
+
+    for (var student in studentSnapshot.docs) {
+      String studentClass = student['classe'];
+      if (classNames.contains(studentClass)) {
+        if (studentCounts.containsKey(studentClass)) {
+          studentCounts[studentClass] = studentCounts[studentClass]! + 1;
+        } else {
+          studentCounts[studentClass] = 1;
+        }
+      }
+    }
+
+    return studentCounts;
+  }
 
   @override
   Widget build(BuildContext context) {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        CustomCard(
-          columns: [
-            DataColumn(label: Text(S.of(context).classLabel)), // Utilisez les traductions ici
-            DataColumn(label: Text(S.of(context).numberOfSubjects)), // Utilisez les traductions ici
-          ],
-          rows: const [
-            DataRow(cells: [
-              DataCell(Text("GI")),
-              DataCell(Text("5")),
-            ]),
-            DataRow(cells: [
-              DataCell(Text("ARI")),
-              DataCell(Text("4")),
-            ]),
-          ],
-          title: S.of(context).classManagement, // Utilisez les traductions ici
-          subtitle: S.of(context).classAndStudentManagement, // Utilisez les traductions ici
-          icon: Icons.arrow_forward,
-          color: Colors.pinkAccent,
-          tileColor: const Color.fromARGB(0, 255, 255, 255),
-          headerColor: Colors.pinkAccent,
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('Enseignants').doc(teacherId).collection('Matieres').snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return const Center(child: Text("Aucune classe trouvée"));
+            }
+
+            var classes = snapshot.data!.docs;
+            List<String> classNames = classes.map((doc) => doc.id).toList();
+
+            return FutureBuilder<Map<String, int>>(
+              future: _getStudentCounts(classNames),
+              builder: (context, studentCountSnapshot) {
+                if (studentCountSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!studentCountSnapshot.hasData) {
+                  return const Center(child: Text("Erreur de chargement des étudiants"));
+                }
+
+                return CustomCard(
+                  columns: [
+                    DataColumn(label: Text(S.of(context).classLabel)), // Utilisez les traductions ici
+                    DataColumn(label: Text(S.of(context).numberOfSubjects)), // Utilisez les traductions ici
+                  ],
+                  rows: classes.map((doc) {
+                    var className = doc.id;
+                    var numberOfSubjects = (doc['matieres'] as List).length;
+
+                    return DataRow(cells: [
+                      DataCell(Text(className)),
+                      DataCell(Text(numberOfSubjects.toString())),
+                    ]);
+                  }).toList(),
+                  title: S.of(context).classManagement, // Utilisez les traductions ici
+                  subtitle: S.of(context).classAndStudentManagement, // Utilisez les traductions ici
+                  icon: Icons.arrow_forward,
+                  color: Colors.pinkAccent,
+                  tileColor: const Color.fromARGB(0, 255, 255, 255),
+                  headerColor: Colors.pinkAccent,
+                );
+              },
+            );
+          },
         ),
         const SizedBox(height: 16),
-        CustomCard(
-          columns: [
-            DataColumn(label: Text(S.of(context).classLabel)), // Utilisez les traductions ici
-            DataColumn(label: Text(S.of(context).numberOfStudents)), // Utilisez les traductions ici
-          ],
-          rows: const [
-            DataRow(cells: [
-              DataCell(Text("GI")),
-              DataCell(Text("25")),
-            ]),
-            DataRow(cells: [
-              DataCell(Text("ARI")),
-              DataCell(Text("30")),
-            ]),
-          ],
-          title: S.of(context).classAndStudentManagement, // Utilisez les traductions ici
-          subtitle: S.of(context).studentListByClass, // Utilisez les traductions ici
-          icon: Icons.arrow_forward,
-          color: Colors.lightBlueAccent,
-          tileColor: const Color.fromARGB(0, 255, 255, 255),
-          headerColor: Colors.lightBlueAccent,
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('Enseignants').doc(teacherId).collection('Matieres').snapshots(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+              return const Center(child: Text("Aucune classe trouvée"));
+            }
+
+            var classes = snapshot.data!.docs;
+            List<String> classNames = classes.map((doc) => doc.id).toList();
+
+            return FutureBuilder<Map<String, int>>(
+              future: _getStudentCounts(classNames),
+              builder: (context, studentCountSnapshot) {
+                if (studentCountSnapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (!studentCountSnapshot.hasData) {
+                  return const Center(child: Text("Erreur de chargement des étudiants"));
+                }
+
+                var studentCounts = studentCountSnapshot.data!;
+
+                return CustomCard(
+                  columns: [
+                    DataColumn(label: Text(S.of(context).classLabel)), // Utilisez les traductions ici
+                    DataColumn(label: Text(S.of(context).numberOfStudents)), // Utilisez les traductions ici
+                  ],
+                  rows: classes.map((doc) {
+                    var className = doc.id;
+                    var numberOfStudents = studentCounts[className] ?? 0;
+
+                    return DataRow(cells: [
+                      DataCell(Text(className)),
+                      DataCell(Text(numberOfStudents.toString())),
+                    ]);
+                  }).toList(),
+                  title: S.of(context).classAndStudentManagement, // Utilisez les traductions ici
+                  subtitle: S.of(context).studentListByClass, // Utilisez les traductions ici
+                  icon: Icons.arrow_forward,
+                  color: Colors.lightBlueAccent,
+                  tileColor: const Color.fromARGB(0, 255, 255, 255),
+                  headerColor: Colors.lightBlueAccent,
+                );
+              },
+            );
+          },
         ),
         const SizedBox(height: 16),
         CustomCard(
@@ -185,42 +282,39 @@ class TeacherHomePageContent extends StatelessWidget {
       ],
     );
   }
-
-
 }
 
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return Theme(
-          data: ThemeData.dark().copyWith(
-            textTheme: const TextTheme(
-              bodyLarge: TextStyle(color: Colors.white),
-              bodyMedium: TextStyle(color: Colors.white),
+void _showLogoutDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) {
+      return Theme(
+        data: ThemeData.dark().copyWith(
+          textTheme: const TextTheme(
+            bodyLarge: TextStyle(color: Colors.white),
+            bodyMedium: TextStyle(color: Colors.white),
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
+          cardColor: const Color(0xFF2E2E2E), dialogTheme: DialogThemeData(backgroundColor: const Color(0xFF1E1E1E)),
+        ),
+        child: AlertDialog(
+          title: Text(S.of(context).logout, style: TextStyle(color: Colors.white)),
+          content: const Text("Voulez-vous vraiment vous déconnecter ?", style: TextStyle(color: Colors.white),),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text("Annuler"),
             ),
-            iconTheme: const IconThemeData(color: Colors.white),
-            cardColor: const Color(0xFF2E2E2E), dialogTheme: DialogThemeData(backgroundColor: const Color(0xFF1E1E1E)),
-          ),
-          child: AlertDialog(
-            title: Text(S.of(context).logout),
-            content: const Text("Voulez-vous vraiment vous déconnecter ?", style: TextStyle(color: Colors.white),),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text("Annuler"),
-              ),
-              ElevatedButton(
-                onPressed: () async {
-                  AuthService.logout(context);
-                },
-                child: Text(S.of(context).logout),
-              ),
-            ],
-          ),
-        );   
-        }
-
-    );
-  }
+            ElevatedButton(
+              onPressed: () async {
+                AuthService.logout(context);
+              },
+              child: Text(S.of(context).logout),
+            ),
+          ],
+        ),
+      );   
+    }
+  );
+}
 

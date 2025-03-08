@@ -1,4 +1,3 @@
-// messages_page.dart
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -16,6 +15,7 @@ class MessagesPageState extends State<MessagesPage> {
   TextEditingController searchController = TextEditingController();
   String? currentUserId;
   List<String> classes = [];
+  List<String> selectedUsers = [];
 
   @override
   void initState() {
@@ -58,8 +58,12 @@ class MessagesPageState extends State<MessagesPage> {
   Future<Map<String, String>> _getRecipientInfo(String chatId) async {
     if (chatId.contains('group')) {
       // Conversation de groupe
-      String className = chatId.split('_')[1]; // Supposons que le nom de la classe est la deuxième partie de chatId
-      return {'nom': className, 'prenom': '', 'type': 'Classe'};
+      List<String> className = chatId.split('_');
+      if(className.length == 3) {
+        return {'nom': className[1], 'prenom': '', 'type': 'Classe'};
+      } else {
+        return {'nom': className[3], 'prenom': '', 'type': 'Groupe'};
+      }
     } else {
       // Conversation individuelle
       String recipientId = chatId.split('_').firstWhere((id) => id != currentUserId);
@@ -259,12 +263,18 @@ class MessagesPageState extends State<MessagesPage> {
             ListTile(
               leading: const Icon(Icons.person, color: Colors.blue),
               title: const Text("Étudiant"),
-              onTap: () {},
+              onTap: () {
+                Navigator.pop(context);
+                _showStudentSelection(context);              
+              },
             ),
             ListTile(
               leading: const Icon(Icons.group, color: Colors.green),
               title: const Text("Parent"),
-              onTap: () {},
+              onTap: () {
+                Navigator.pop(context);
+                _showParentSelection(context);
+              },
             ),
             ListTile(
               leading: const Icon(Icons.business, color: Colors.red),
@@ -321,8 +331,8 @@ class MessagesPageState extends State<MessagesPage> {
                 padding: const EdgeInsets.all(8.0),
                 child: ElevatedButton(
                   onPressed: () {
+                    _startGroupChat();
                     Navigator.pop(context);
-                    // Ajouter la conversation groupée aux conversations en cours
                   },
                   child: const Text("Lancer la conversation"),
                 ),
@@ -335,13 +345,273 @@ class MessagesPageState extends State<MessagesPage> {
   }
 
   Widget _buildUserSelectionList(String type) {
-    return ListView.builder(
-      itemCount: 10, // Exemple d'affichage de 10 utilisateurs
-      itemBuilder: (context, index) {
-        return CheckboxListTile(
-          title: Text("$type $index"),
-          value: false,
-          onChanged: (bool? value) {},
+    return FutureBuilder<QuerySnapshot>(
+      future: FirebaseFirestore.instance.collection(type == "Étudiant" ? 'Etudiants' : 'Parents').get(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return Center(child: Text("Aucun $type trouvé"));
+        }
+
+        var users = snapshot.data!.docs;
+
+        return StatefulBuilder(
+          builder: (BuildContext context, StateSetter setState) {
+            return ListView.builder(
+              itemCount: users.length,
+              itemBuilder: (context, index) {
+                var user = users[index];
+                var userName = "${user['nom']} ${user['prenom']}";
+                var className = "";
+                if(type == "Étudiant") {
+                  className = "($user['classe'])";
+                } else {
+                 className = "";
+                }
+                var userId = user.id;
+
+                return CheckboxListTile(
+                            title: Text.rich(
+                              TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: "$userName ",
+                                    style: const TextStyle(fontSize: 16.0, color: Colors.black),
+                                  ),
+                                  TextSpan(
+                                    text: className,
+                                    style: const TextStyle(fontSize: 12.0, color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),                  value: selectedUsers.contains(userId),
+                  onChanged: (bool? value) {
+                    setState(() {
+                      if (value == true) {
+                        selectedUsers.add(userId);
+                      } else {
+                        selectedUsers.remove(userId);
+                      }
+                    });
+                  },
+                );
+              },
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _startGroupChat() async {
+    if (selectedUsers.isEmpty) return;
+
+    String groupId = "${currentUserId}_${DateTime.now().millisecondsSinceEpoch}_group_";
+    List<String> participants = [currentUserId!, ...selectedUsers];
+
+    String conversationType = participants.any((participant) => participant.startsWith('P')) ? 'Parents' : 'Etudiants';
+
+    await FirebaseFirestore.instance.collection('Chats').doc(groupId).set({
+      'participants': participants,
+      'isGroup': true,
+      'groupName': 'Group Chat',
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+
+    // Ajouter une entrée dans chaque participant pour qu'ils puissent récupérer la conversation
+    for (String participant in participants) {
+      await FirebaseFirestore.instance.collection('Users').doc(participant).collection('UserChats').doc(groupId).set({
+        'chatId': groupId,
+        'isGroup': true,
+        'groupName': 'Group Chat',
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    }
+
+    Navigator.push(
+      // ignore: use_build_context_synchronously
+      context,
+      MaterialPageRoute(
+        builder: (context) => ChatgroupPage(chatId: '${groupId}Chat($conversationType)', recipientName: 'Group Chat ($conversationType)'),
+      ),
+    );
+  }
+
+  void _showStudentSelection(BuildContext context) {
+    TextEditingController searchController = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Container (
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.7,
+              ),
+              child:  Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: TextField(
+                    controller: searchController,
+                    decoration: const InputDecoration(
+                      labelText: "Rechercher un étudiant",
+                      prefixIcon: Icon(Icons.search),
+                    ),
+                    onChanged: (value) {
+                      setState(() {});
+                    },
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Expanded(
+                  child: FutureBuilder<QuerySnapshot>(
+                    future: FirebaseFirestore.instance.collection('Etudiants').get(),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                        return const Center(child: Text("Aucun étudiant trouvé"));
+                      }
+
+                      var students = snapshot.data!.docs.where((student) {
+                        var studentName = "${student['nom']} ${student['prenom']}";
+                        return studentName.toLowerCase().contains(searchController.text.toLowerCase());
+                      }).toList();
+
+                      return ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: students.length,
+                        itemBuilder: (context, index) {
+                          var student = students[index];
+                          var studentName = "${student['nom']} ${student['prenom']}";
+                          var studentClass = student['classe'];
+
+                          return ListTile(
+                            title: Text.rich(
+                              TextSpan(
+                                children: [
+                                  TextSpan(
+                                    text: "$studentName ",
+                                    style: const TextStyle(fontSize: 16.0, color: Colors.black),
+                                  ),
+                                  TextSpan(
+                                    text: "($studentClass)",
+                                    style: const TextStyle(fontSize: 12.0, color: Colors.grey),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            onTap: () {
+                              Navigator.pop(context);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => ChatPage(
+                                    chatId: "${currentUserId}_${student.id}",
+                                    recipientName: studentName,
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+
+            );
+
+          },
+        );
+      },
+    );
+  }
+
+  void _showParentSelection(BuildContext context) {
+    TextEditingController searchController = TextEditingController();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.7,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: TextField(
+                      controller: searchController,
+                      decoration: const InputDecoration(
+                        labelText: "Rechercher un parent",
+                        prefixIcon: Icon(Icons.search),
+                      ),
+                      onChanged: (value) {
+                        setState(() {});
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: FutureBuilder<QuerySnapshot>(
+                      future: FirebaseFirestore.instance.collection('Parents').get(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState == ConnectionState.waiting) {
+                          return const Center(child: CircularProgressIndicator());
+                        }
+                        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                          return const Center(child: Text("Aucun parent trouvé"));
+                        }
+
+                        var parents = snapshot.data!.docs.where((parent) {
+                          var parentName = "${parent['nom']} ${parent['prenom']}";
+                          return parentName.toLowerCase().contains(searchController.text.toLowerCase());
+                        }).toList();
+
+                        return ListView.builder(
+                          shrinkWrap: true,
+                          itemCount: parents.length,
+                          itemBuilder: (context, index) {
+                            var parent = parents[index];
+                            var parentName = "${parent['nom']} ${parent['prenom']}";
+
+                            return ListTile(
+                              title: Text(parentName, style: const TextStyle(color: Colors.black)),
+                              onTap: () {
+                                Navigator.pop(context);
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ChatPage(
+                                      chatId: "${currentUserId}_${parent.id}",
+                                      recipientName: parentName,
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
