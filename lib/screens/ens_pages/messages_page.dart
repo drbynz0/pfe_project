@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chat_page.dart';
 import 'chatgroup_page.dart';
+import 'chatclass_page.dart';
 
 class MessagesPage extends StatefulWidget {
   const MessagesPage({super.key});
@@ -42,8 +43,51 @@ class MessagesPageState extends State<MessagesPage> {
     }
   }
 
+  Future<void> _createClassConversations() async {
+    if (currentUserId == null) return;
+
+    // Récupérer les classes enseignées par l'enseignant
+    QuerySnapshot classSnapshot = await FirebaseFirestore.instance
+        .collection('Enseignants')
+        .doc(currentUserId)
+        .collection('Matieres')
+        .get();
+
+    if (classSnapshot.docs.isEmpty) return;
+
+    // Parcourir chaque classe et créer une conversation
+    for (var classDoc in classSnapshot.docs) {
+      String className = classDoc.id;
+      String chatId = "${currentUserId}_${className}_group";
+
+      // Vérifier si la conversation existe déjà
+      DocumentSnapshot chatSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(currentUserId)
+          .collection('UserChats')
+          .doc(chatId)
+          .get();
+
+      if (!chatSnapshot.exists) {
+        // Créer la conversation dans Firestore
+        await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(currentUserId)
+            .collection('UserChats')
+            .doc(chatId)
+            .set({
+          'chatId': chatId,
+          'groupName': className,
+          'isGroup': false,
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+      }
+    }
+  }
+
   Future<void> _fetchClasses() async {
     if (currentUserId == null) return;
+
     QuerySnapshot classSnapshot = await FirebaseFirestore.instance
         .collection('Enseignants')
         .doc(currentUserId)
@@ -53,16 +97,20 @@ class MessagesPageState extends State<MessagesPage> {
     setState(() {
       classes = classSnapshot.docs.map((doc) => doc.id).toList();
     });
+
+    // Créer les conversations pour chaque classe
+    await _createClassConversations();
   }
 
   Future<Map<String, String>> _getRecipientInfo(String chatId) async {
     if (chatId.contains('group')) {
       // Conversation de groupe
-      List<String> className = chatId.split('_');
-      if(className.length == 3) {
-        return {'nom': className[1], 'prenom': '', 'type': 'Classe'};
+      List<String> parts = chatId.split('_');
+      if (parts.length >= 3) {
+        String className = parts[1]; // Le nom de la classe est la deuxième partie
+        return {'nom': className, 'prenom': '', 'type': 'Classe'};
       } else {
-        return {'nom': className[3], 'prenom': '', 'type': 'Groupe'};
+        return {'nom': 'Groupe', 'prenom': '', 'type': 'Groupe'};
       }
     } else {
       // Conversation individuelle
@@ -122,40 +170,78 @@ class MessagesPageState extends State<MessagesPage> {
   }
 
   Widget _buildClassStatus() {
-    return SizedBox(
-      height: 80,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: classes.length,
-        itemBuilder: (context, index) {
-          return GestureDetector(
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ChatgroupPage(chatId: "${currentUserId}_${classes[index]}_group", recipientName: classes[index]),
+    if (currentUserId == null) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    return StreamBuilder(
+      stream: FirebaseFirestore.instance
+          .collection('Users')
+          .doc(currentUserId)
+          .collection('UserChats')
+          .snapshots(),
+      builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text("Aucune conversation de groupe", style: TextStyle(color: Colors.white)));
+        }
+
+        var groupConversations = snapshot.data!.docs.where((doc) {
+          return doc.id.contains('group');
+        }).toList();
+
+        return SizedBox(
+          height: 80,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: groupConversations.length,
+            itemBuilder: (context, index) {
+              var conversation = groupConversations[index];
+              var chatId = conversation.id;
+              var groupName = conversation['groupName'];
+              bool isGroup = conversation['isGroup'] ?? false;
+
+              return GestureDetector(
+                onTap: () {
+                  if (isGroup) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatgroupPage(chatId: chatId, recipientName: groupName),
+                      ),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatclassPage(chatId: chatId, recipientName: groupName),
+                      ),
+                    );
+                  }
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: Column(
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: Colors.blue,
+                        child: Text(groupName[0], style: const TextStyle(color: Colors.white, fontSize: 20)),
+                      ),
+                      const SizedBox(height: 5),
+                      Flexible(
+                        child: Text(groupName, style: const TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 30,
-                    backgroundColor: Colors.blue,
-                    child: Text(classes[index][0], style: const TextStyle(color: Colors.white, fontSize: 20)),
-                  ),
-                  const SizedBox(height: 5),
-                  Flexible(
-                    child: Text(classes[index], style: const TextStyle(color: Colors.white)),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -165,7 +251,11 @@ class MessagesPageState extends State<MessagesPage> {
     }
 
     return StreamBuilder(
-      stream: FirebaseFirestore.instance.collection('Chats').snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('Users')
+          .doc(currentUserId)
+          .collection('UserChats')
+          .snapshots(),
       builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -175,7 +265,7 @@ class MessagesPageState extends State<MessagesPage> {
         }
 
         var conversations = snapshot.data!.docs.where((doc) {
-          return doc.id.contains(currentUserId!);
+          return !doc.id.contains('group');
         }).toList();
 
         return ListView.builder(
@@ -200,9 +290,11 @@ class MessagesPageState extends State<MessagesPage> {
 
                 return StreamBuilder(
                   stream: FirebaseFirestore.instance
-                      .collection('Chats')
+                      .collection('Users')
+                      .doc(currentUserId)
+                      .collection('UserChats')
                       .doc(chatId)
-                      .collection('messages')
+                      .collection('Messages')
                       .orderBy('timestamp', descending: true)
                       .limit(1)
                       .snapshots(),
@@ -265,7 +357,7 @@ class MessagesPageState extends State<MessagesPage> {
               title: const Text("Étudiant"),
               onTap: () {
                 Navigator.pop(context);
-                _showStudentSelection(context);              
+                _showStudentSelection(context);
               },
             ),
             ListTile(
@@ -386,8 +478,9 @@ class MessagesPageState extends State<MessagesPage> {
                                   ),
                                 ],
                               ),
-                            ),                  value: selectedUsers.contains(userId),
-                  onChanged: (bool? value) {
+                            ),
+                    value: selectedUsers.contains(userId),
+                    onChanged: (bool? value) {
                     setState(() {
                       if (value == true) {
                         selectedUsers.add(userId);
@@ -406,26 +499,19 @@ class MessagesPageState extends State<MessagesPage> {
   }
 
   void _startGroupChat() async {
-    if (selectedUsers.isEmpty) return;
+    if (selectedUsers.isEmpty || selectedUsers.length < 2) return;
 
-    String groupId = "${currentUserId}_${DateTime.now().millisecondsSinceEpoch}_group_";
     List<String> participants = [currentUserId!, ...selectedUsers];
 
     String conversationType = participants.any((participant) => participant.startsWith('P')) ? 'Parents' : 'Etudiants';
-
-    await FirebaseFirestore.instance.collection('Chats').doc(groupId).set({
-      'participants': participants,
-      'isGroup': true,
-      'groupName': 'Group Chat',
-      'timestamp': FieldValue.serverTimestamp(),
-    });
+    String groupId = "${currentUserId}_${DateTime.now().millisecondsSinceEpoch}_group_Chat($conversationType)";
 
     // Ajouter une entrée dans chaque participant pour qu'ils puissent récupérer la conversation
     for (String participant in participants) {
       await FirebaseFirestore.instance.collection('Users').doc(participant).collection('UserChats').doc(groupId).set({
         'chatId': groupId,
         'isGroup': true,
-        'groupName': 'Group Chat',
+        'groupName': participants,
         'timestamp': FieldValue.serverTimestamp(),
       });
     }
@@ -434,7 +520,7 @@ class MessagesPageState extends State<MessagesPage> {
       // ignore: use_build_context_synchronously
       context,
       MaterialPageRoute(
-        builder: (context) => ChatgroupPage(chatId: '${groupId}Chat($conversationType)', recipientName: 'Group Chat ($conversationType)'),
+        builder: (context) => ChatgroupPage(chatId: groupId, recipientName: 'Group Chat($conversationType)'),
       ),
     );
   }

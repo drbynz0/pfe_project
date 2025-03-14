@@ -57,12 +57,17 @@ class ChatgroupPageState extends State<ChatgroupPage> {
     if (widget.chatId.contains('_')) {
       List<String> ids = widget.chatId.split('_');
       if (ids.length == 2) {
-        receiverId = ids[0] == currentUserId ? ids[1] : ids[0];
+        for(int i = 0; i < ids.length; i++) {
+          if (ids[i] != currentUserId && ids[i] != "group") {
+            receiverId = ids[i];
+            break;
+          }
+        }
       }
     }
   }
 
-    Future<String> _getUserInfo(String? userId) async {
+  Future<String> _getUserInfo(String? userId) async {
     DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(userId).get();
 
     if (userDoc.exists) {
@@ -96,9 +101,11 @@ class ChatgroupPageState extends State<ChatgroupPage> {
   Widget _buildMessageList() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection("Chats")
+          .collection('Users')
+          .doc(currentUserId)
+          .collection("UserChats")
           .doc(widget.chatId)
-          .collection("messages")
+          .collection("Messages")
           .orderBy("timestamp", descending: true)
           .snapshots(),
       builder: (context, snapshot) {
@@ -127,22 +134,49 @@ class ChatgroupPageState extends State<ChatgroupPage> {
 
   Widget _buildMessageItem(DocumentSnapshot message, bool isMe) {
     bool isFileMessage = message.data() != null && (message.data() as Map<String, dynamic>).containsKey('file_url');
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isMe ? Colors.blue : Colors.grey[300],
-          borderRadius: BorderRadius.circular(15),
+    return Stack(
+      children: [
+        Align(
+          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isMe ? Colors.blue : Colors.grey[300],
+              borderRadius: BorderRadius.circular(15),
+            ),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.7, // 70% de la largeur de l'écran
+            ),
+            child: isFileMessage ? _buildFileMessage(message, isMe) : _buildTextMessage(message, isMe),
+          ),
         ),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.7, // 70% de la largeur de l'écran
-        ),
-        child: isFileMessage ? _buildFileMessage(message, isMe) : _buildTextMessage(message, isMe),
-      ),
+        if (isMe)
+          Positioned(
+            right: 0,
+            child: PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
+              onSelected: (value) {
+                if (value == 'Modifier') {
+                  _showEditMessageDialog(message);
+                } else if (value == 'Supprimer') {
+                  _showDeleteConfirmationDialog(message);
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                return {'Modifier', 'Supprimer'}.map((String choice) {
+                  return PopupMenuItem<String>(
+                    value: choice,
+                    child: Text(choice),
+                  );
+                }).toList();
+              },
+            ),
+          ),
+      ],
     );
   }
+
   Widget _buildTextMessage(DocumentSnapshot message, bool isMe) {
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -157,18 +191,21 @@ class ChatgroupPageState extends State<ChatgroupPage> {
                   future: _getUserInfo(message["sender_id"]),
                   builder: (context, snapshot) {
                     if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Text("Chargement...");
+                      return const Text("Chargement...", style: TextStyle(color: Colors.grey));
                     }
                     if (snapshot.hasError) {
-                      return const Text("Erreur");
+                      return const Text("Erreur", style: TextStyle(color: Colors.grey));
                     }
                     return Text(
                       snapshot.data ?? '',
-                      style: TextStyle(color: isMe ? const Color.fromARGB(255, 174, 174, 174) : const Color.fromARGB(255, 33, 33, 33)),
+                      style: TextStyle(
+                        color: Colors.grey, // Couleur du texte pour le nom de l'expéditeur
+                        fontSize: 12, // Taille de police plus petite pour le nom
+                      ),
                     );
                   },
                 ),
-                Text(
+              Text(
                 message["text"],
                 style: TextStyle(color: isMe ? Colors.white : Colors.black),
                 softWrap: true,
@@ -176,24 +213,6 @@ class ChatgroupPageState extends State<ChatgroupPage> {
             ],
           ),
         ),
-        if (isMe)
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'Modifier') {
-                _showEditMessageDialog(message);
-              } else if (value == 'Supprimer') {
-                _showDeleteConfirmationDialog(message);
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              return {'Modifier', 'Supprimer'}.map((String choice) {
-                return PopupMenuItem<String>(
-                  value: choice,
-                  child: Text(choice),
-                );
-              }).toList();
-            },
-          ),
       ],
     );
   }
@@ -248,9 +267,11 @@ class ChatgroupPageState extends State<ChatgroupPage> {
             ElevatedButton(
               onPressed: () async {
                 await FirebaseFirestore.instance
-                    .collection("Chats")
+                    .collection('Users')
+                    .doc(currentUserId)
+                    .collection("UserChats")
                     .doc(widget.chatId)
-                    .collection("messages")
+                    .collection("Messages")
                     .doc(message.id)
                     .update({"text": editController.text});
                 if (mounted) {
@@ -281,9 +302,11 @@ class ChatgroupPageState extends State<ChatgroupPage> {
             ElevatedButton(
               onPressed: () async {
                 await FirebaseFirestore.instance
-                    .collection("Chats")
+                    .collection('Users')
+                    .doc(currentUserId)
+                    .collection("UserChats")
                     .doc(widget.chatId)
-                    .collection("messages")
+                    .collection("Messages")
                     .doc(message.id)
                     .delete();
                 if (mounted) {
@@ -364,77 +387,127 @@ class ChatgroupPageState extends State<ChatgroupPage> {
     }
   }
 
-void _uploadFile() async {
-  if (selectedFile == null) return;
+  void _uploadFile() async {
+    if (selectedFile == null) return;
 
-  String fileName = selectedFile!.name; // ✅ Récupérer le nom du fichier sans erreur
-  Reference storageRef = FirebaseStorage.instance.ref().child('chat_files/${widget.chatId}/$fileName');
+    String fileName = selectedFile!.name; // ✅ Récupérer le nom du fichier sans erreur
+    Reference storageRef = FirebaseStorage.instance.ref().child('chat_files/${widget.chatId}/$fileName');
 
-  UploadTask uploadTask;
+    UploadTask uploadTask;
 
-  if (kIsWeb) {
-    // ✅ Web : Utiliser Blob
-    Uint8List? fileBytes = selectedFile!.bytes;
-    if (fileBytes == null) return;
+    if (kIsWeb) {
+      // ✅ Web : Utiliser Blob
+      Uint8List? fileBytes = selectedFile!.bytes;
+      if (fileBytes == null) return;
 
-    final blob = html.Blob([fileBytes]);
-    uploadTask = storageRef.putBlob(blob);
-  } else {
-    // ✅ Mobile : Utiliser File
-    File file = File(selectedFile!.path!);
-    uploadTask = storageRef.putFile(file);
-  }
+      final blob = html.Blob([fileBytes]);
+      uploadTask = storageRef.putBlob(blob);
+    } else {
+      // ✅ Mobile : Utiliser File
+      File file = File(selectedFile!.path!);
+      uploadTask = storageRef.putFile(file);
+    }
 
-  TaskSnapshot taskSnapshot = await uploadTask;
-  String downloadUrl = await taskSnapshot.ref.getDownloadURL();
-
-  await FirebaseFirestore.instance
-      .collection("Chats")
-      .doc(widget.recipientName)
-      .collection("messages")
-      .add({
-    "sender_id": currentUserId,
-    "receiver_id": widget.recipientName,
-    "text": "",
-    "file_url": downloadUrl,
-    "file_name": fileName,
-    "timestamp": FieldValue.serverTimestamp(),
-    "isRead": false,
-  });
-
-  setState(() {
-    selectedFile = null;
-  });
-}
-
-Future<void> pickFile() async {
-  FilePickerResult? result = await FilePicker.platform.pickFiles();
-
-  if (result != null) {
-    selectedFile = result.files.first; // ✅ Stocker correctement le fichier
-  }
-}
-
-  void _sendMessage() async {
-    String messageText = messageController.text.trim();
-    if (messageText.isEmpty) return;
-
-    if (currentUserId == null || receiverId == null) return;
+    TaskSnapshot taskSnapshot = await uploadTask;
+    String downloadUrl = await taskSnapshot.ref.getDownloadURL();
 
     await FirebaseFirestore.instance
-        .collection("Chats")
+        .collection('Users')
+        .doc(currentUserId)
+        .collection("UserChats")
         .doc(widget.chatId)
-        .collection("messages")
+        .collection("Messages")
         .add({
       "sender_id": currentUserId,
-      "receiver_id": widget.recipientName,
-      "text": messageText,
+      "receiver_id": receiverId,
+      "text": "",
+      "file_url": downloadUrl,
+      "file_name": fileName,
       "timestamp": FieldValue.serverTimestamp(),
       "isRead": false,
     });
 
-    messageController.clear();
+    setState(() {
+      selectedFile = null;
+    });
   }
+
+  Future<void> pickFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+    if (result != null) {
+      selectedFile = result.files.first;
+    }
+  }
+
+void _sendMessage() async {
+  String messageText = messageController.text.trim();
+  if (messageText.isEmpty) return;
+
+  if (currentUserId == null) return;
+
+  // Référence à la collection UserChats de l'utilisateur actuel
+  DocumentReference chatDocRef = FirebaseFirestore.instance
+      .collection('Users')
+      .doc(currentUserId)
+      .collection("UserChats")
+      .doc(widget.chatId);
+
+  // Vérifiez si la collection de messages est vide
+  CollectionReference messagesCollectionRef = chatDocRef.collection("Messages");
+  DocumentSnapshot chatDocSnapshot = await chatDocRef.get();
+
+  if (!chatDocSnapshot.exists) {
+    // Créez le document de chat s'il n'existe pas
+    await chatDocRef.set({
+      'participants': [currentUserId, widget.recipientName],
+      'isGroup': true,
+      'groupName': widget.recipientName,
+      'timestamp': FieldValue.serverTimestamp(),
+    });
+  }
+
+  // Ajoutez le message à la collection de messages de l'utilisateur actuel
+  await messagesCollectionRef.add({
+    "sender_id": currentUserId,
+    "receiver_id": widget.recipientName,
+    "text": messageText,
+    "timestamp": FieldValue.serverTimestamp(),
+    "isRead": false,
+  });
+
+  // Parcourir tous les utilisateurs pour envoyer le message aux participants
+  QuerySnapshot usersSnapshot = await FirebaseFirestore.instance.collection('Users').get();
+
+  for (var userDoc in usersSnapshot.docs) {
+    String userId = userDoc.id;
+
+    // Exclure l'utilisateur actuel (currentUserId)
+    if (userId == currentUserId) continue;
+
+    // Vérifier si l'utilisateur a une conversation avec le chatId correspondant
+    DocumentReference userChatRef = FirebaseFirestore.instance
+        .collection('Users')
+        .doc(userId)
+        .collection("UserChats")
+        .doc(widget.chatId);
+
+    DocumentSnapshot userChatSnapshot = await userChatRef.get();
+
+    if (userChatSnapshot.exists) {
+      // Ajouter le message à la sous-collection Messages de cette conversation
+      await userChatRef.collection("Messages").add({
+        "sender_id": currentUserId,
+        "receiver_id": widget.recipientName,
+        "text": messageText,
+        "timestamp": FieldValue.serverTimestamp(),
+        "isRead": false,
+      });
+    }
+  }
+
+  messageController.clear();
+}
 
   void _downloadFile(String url) async {
     // ignore: deprecated_member_use

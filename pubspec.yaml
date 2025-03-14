@@ -78,6 +78,8 @@ dependencies:
   firebase_storage: ^12.4.4
   image_picker: ^1.1.2
   path: ^1.9.1
+  webview_flutter: ^2.0.10
+  webview_windows: ^0.4.0
 firebase_database: ^10.0.0
 provider: ^6.0.3
 dev_dependencies:
@@ -93,4 +95,3 @@ flutter:
 
   assets:
   - lib/l10n/
-  - web/index.html

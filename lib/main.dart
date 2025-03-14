@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
-import 'admin_web.dart';
 import 'generated/l10n.dart';
 import 'firebase_options.dart';
 import '/screens/login_page/login_page.dart';
@@ -60,7 +59,6 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       initialRoute: '/login',
       routes: {
-        '/admin': (context) => const AdminApp(),
         '/login': (context) => const LoginPage(),
         '/homeEns': (context) => const TeacherHomePage(),
         '/homeEtud': (context) => const EtudiantHomePage(),

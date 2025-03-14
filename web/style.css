@@ -96,6 +96,8 @@ main {
 }
 
 #login-btn {
+    color: white;
+    text-decoration: none;
     cursor: pointer;
     padding: 10px;
     border-radius: 30px;
@@ -107,9 +109,5 @@ main {
 }
 #login-btn:hover {
     background: linear-gradient(to right, rgb(79, 116, 173), rgb(113, 61, 102));
-}
-#login-btn a {
-    color: white;
-    text-decoration: none;
 }
 

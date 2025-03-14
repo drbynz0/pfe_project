@@ -31,9 +31,13 @@ class ChatPageState extends State<ChatPage> {
   @override
   void initState() {
     super.initState();
-    _getCurrentUserId();
-    _getReceiverId();
+    _initialize();
   }
+
+  Future<void> _initialize() async {
+    await _getCurrentUserId();
+    _getReceiverId();
+    }
 
   Future<void> _getCurrentUserId() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -54,10 +58,13 @@ class ChatPageState extends State<ChatPage> {
   }
 
   void _getReceiverId() {
+    _getCurrentUserId();
     if (widget.chatId.contains('_')) {
       List<String> ids = widget.chatId.split('_');
-      if (ids.length == 2) {
-        receiverId = ids[0] == currentUserId ? ids[1] : ids[0];
+      if (ids[0] == currentUserId) {
+        receiverId = ids[1];
+      } else {
+        receiverId = ids[0];
       }
     }
   }
@@ -84,9 +91,11 @@ class ChatPageState extends State<ChatPage> {
   Widget _buildMessageList() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection("Chats")
+          .collection('Users')
+          .doc(currentUserId)
+          .collection("UserChats")
           .doc(widget.chatId)
-          .collection("messages")
+          .collection("Messages")
           .orderBy("timestamp", descending: true)
           .snapshots(),
       builder: (context, snapshot) {
@@ -115,53 +124,54 @@ class ChatPageState extends State<ChatPage> {
 
   Widget _buildMessageItem(DocumentSnapshot message, bool isMe) {
     bool isFileMessage = message.data() != null && (message.data() as Map<String, dynamic>).containsKey('file_url');
-    return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isMe ? Colors.blue : Colors.grey[300],
-          borderRadius: BorderRadius.circular(15),
+    return Stack(
+      children: [
+        Align(
+          alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+          child: Container(
+            margin: const EdgeInsets.symmetric(vertical: 5, horizontal: 10),
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isMe ? Colors.blue : Colors.grey[300],
+              borderRadius: BorderRadius.circular(15),
+            ),
+            constraints: BoxConstraints(
+              maxWidth: MediaQuery.of(context).size.width * 0.7, // 70% de la largeur de l'écran
+            ),
+            child: isFileMessage ? _buildFileMessage(message, isMe) : _buildTextMessage(message, isMe),
+          ),
         ),
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.7, // 70% de la largeur de l'écran
-        ),
-        child: isFileMessage ? _buildFileMessage(message, isMe) : _buildTextMessage(message, isMe),
-      ),
+        if (isMe)
+          Positioned(
+            right: 0,
+            child: PopupMenuButton<String>(
+              icon: const Icon(Icons.more_vert, color: Colors.white, size: 20),
+              onSelected: (value) {
+                if (value == 'Modifier') {
+                  _showEditMessageDialog(message);
+                } else if (value == 'Supprimer') {
+                  _showDeleteConfirmationDialog(message);
+                }
+              },
+              itemBuilder: (BuildContext context) {
+                return {'Modifier', 'Supprimer'}.map((String choice) {
+                  return PopupMenuItem<String>(
+                    value: choice,
+                    child: Text(choice),
+                  );
+                }).toList();
+              },
+            ),
+          ),
+      ],
     );
   }
 
   Widget _buildTextMessage(DocumentSnapshot message, bool isMe) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-      Flexible(
-          child: Text(
-            message["text"],
-            style: TextStyle(color: isMe ? Colors.white : Colors.black),
-            softWrap: true,
-          ),
-        ),
-        if (isMe)
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              if (value == 'Modifier') {
-                _showEditMessageDialog(message);
-              } else if (value == 'Supprimer') {
-                _showDeleteConfirmationDialog(message);
-              }
-            },
-            itemBuilder: (BuildContext context) {
-              return {'Modifier', 'Supprimer'}.map((String choice) {
-                return PopupMenuItem<String>(
-                  value: choice,
-                  child: Text(choice),
-                );
-              }).toList();
-            },
-          ),
-      ],
+    return Text(
+      message["text"],
+      style: TextStyle(color: isMe ? Colors.white : Colors.black),
+      softWrap: true,
     );
   }
 
@@ -215,9 +225,11 @@ class ChatPageState extends State<ChatPage> {
             ElevatedButton(
               onPressed: () async {
                 await FirebaseFirestore.instance
-                    .collection("Chats")
+                    .collection('Users')
+                    .doc(currentUserId)
+                    .collection('UserChats')
                     .doc(widget.chatId)
-                    .collection("messages")
+                    .collection("Messages")
                     .doc(message.id)
                     .update({"text": editController.text});
                 if (mounted) {
@@ -248,9 +260,11 @@ class ChatPageState extends State<ChatPage> {
             ElevatedButton(
               onPressed: () async {
                 await FirebaseFirestore.instance
-                    .collection("Chats")
+                    .collection('Users')
+                    .doc(currentUserId)
+                    .collection('UserChats')
                     .doc(widget.chatId)
-                    .collection("messages")
+                    .collection("Messages")
                     .doc(message.id)
                     .delete();
                 if (mounted) {
@@ -278,10 +292,10 @@ class ChatPageState extends State<ChatPage> {
           Expanded(
             child: TextField(
               controller: messageController,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
               decoration: InputDecoration(
                 hintText: "Écrire un message...",
-                hintStyle: const TextStyle(color: Color.fromARGB(255, 184, 182, 182)),
+                hintStyle: const TextStyle(color: Color.fromARGB(255, 61, 60, 60)),
                 filled: true,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
               ),
@@ -356,9 +370,11 @@ void _uploadFile() async {
   String downloadUrl = await taskSnapshot.ref.getDownloadURL();
 
   await FirebaseFirestore.instance
-      .collection("Chats")
+      .collection('Users')
+      .doc(currentUserId)
+      .collection('UserChats')
       .doc(widget.chatId)
-      .collection("messages")
+      .collection('Messages')
       .add({
     "sender_id": currentUserId,
     "receiver_id": receiverId,
@@ -388,11 +404,65 @@ Future<void> pickFile() async {
 
     if (currentUserId == null || receiverId == null) return;
 
-    await FirebaseFirestore.instance
-        .collection("Chats")
-        .doc(widget.chatId)
-        .collection("messages")
-        .add({
+    // Référence à la collection UserChats de l'utilisateur actuel
+    DocumentReference currentUserChatRef = FirebaseFirestore.instance
+        .collection('Users')
+        .doc(currentUserId)
+        .collection('UserChats')
+        .doc(widget.chatId);
+
+    // Référence à la collection UserChats du récepteur
+    DocumentReference receiverChatRef = FirebaseFirestore.instance
+        .collection('Users')
+        .doc(receiverId)
+        .collection('UserChats')
+        .doc(widget.chatId);
+
+    // Vérifiez si la collection UserChats existe pour l'utilisateur actuel
+    DocumentSnapshot currentUserChatSnapshot = await currentUserChatRef.get();
+    if (!currentUserChatSnapshot.exists) {
+      await currentUserChatRef.set({
+        'chatId': widget.chatId,
+        'isGroup': false,
+        'participants': [currentUserId, receiverId],
+        'lastMessage': messageText,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } else {
+      await currentUserChatRef.update({
+        'lastMessage': messageText,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Vérifiez si la collection UserChats existe pour le récepteur
+    DocumentSnapshot receiverChatSnapshot = await receiverChatRef.get();
+    if (!receiverChatSnapshot.exists) {
+      await receiverChatRef.set({
+        'chatId': widget.chatId,
+        'isGroup': false,
+        'participants': [currentUserId, receiverId],
+        'lastMessage': messageText,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } else {
+      await receiverChatRef.update({
+        'lastMessage': messageText,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Ajoutez le message à la collection Messages de l'utilisateur actuel
+    await currentUserChatRef.collection('Messages').add({
+      "sender_id": currentUserId,
+      "receiver_id": receiverId,
+      "text": messageText,
+      "timestamp": FieldValue.serverTimestamp(),
+      "isRead": false,
+    });
+
+    // Ajoutez le message à la collection Messages du récepteur
+    await receiverChatRef.collection('Messages').add({
       "sender_id": currentUserId,
       "receiver_id": receiverId,
       "text": messageText,

@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'chat_page.dart';
 import 'chatgroup_page.dart';
+import 'chatclass_page.dart';
 
 class MessagesPage extends StatefulWidget {
   const MessagesPage({super.key});
@@ -15,7 +16,7 @@ class MessagesPage extends StatefulWidget {
 class MessagesPageState extends State<MessagesPage> {
   TextEditingController searchController = TextEditingController();
   String? currentUserId;
-  String? classe;
+  List<String> classes = [];
 
   @override
   void initState() {
@@ -37,12 +38,12 @@ class MessagesPageState extends State<MessagesPage> {
         setState(() {
           currentUserId = userSnapshot.docs.first.id;
         });
-        _fetchClasse();
+        _fetchClasses();
       }
     }
   }
 
-  Future<void> _fetchClasse() async {
+  Future<void> _fetchClasses() async {
     if (currentUserId == null) return;
     DocumentSnapshot classSnapshot = await FirebaseFirestore.instance
         .collection('Etudiants')
@@ -50,7 +51,7 @@ class MessagesPageState extends State<MessagesPage> {
         .get();
 
     setState(() {
-      classe = classSnapshot['classe'];
+      classes = List<String>.from(classSnapshot['classes']);
     });
   }
 
@@ -117,35 +118,157 @@ class MessagesPageState extends State<MessagesPage> {
   }
 
   Widget _buildClassStatus() {
-    if (classe == null) {
-      return const SizedBox.shrink();
+    if (currentUserId == null) {
+      return const Center(child: CircularProgressIndicator());
     }
 
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => ChatgroupPage(chatId: "${currentUserId}_${classe}_group", recipientName: classe ?? ''),
-          ),
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('Users')
+          .doc(currentUserId)
+          .collection('UserChats')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text("Aucune conversation de groupe", style: TextStyle(color: Colors.white)));
+        }
+
+        // Récupérer les conversations contenant 'group'
+        var groupConversations = snapshot.data!.docs.where((doc) {
+          return doc.id.contains('group');
+        }).toList();
+
+        // Récupérer les conversations des enseignants
+        return FutureBuilder<List<Map<String, dynamic>>>(
+          future: _fetchTeacherConversations(),
+          builder: (context, teacherConversationsSnapshot) {
+            if (teacherConversationsSnapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            // Combiner les deux listes de conversations
+            List<Map<String, dynamic>> allConversations = [];
+            allConversations.addAll(groupConversations.map((doc) {
+              return {
+                'chatId': doc.id,
+                'groupName': doc['groupName'],
+                'isGroup': doc['isGroup'] ?? false, // Récupérer le champ isGroup
+              };
+            }));
+
+            if (teacherConversationsSnapshot.hasData) {
+              allConversations.addAll(teacherConversationsSnapshot.data!);
+            }
+
+            return SizedBox(
+              height: 80,
+              child: ListView.builder(
+                scrollDirection: Axis.horizontal,
+                itemCount: allConversations.length,
+                itemBuilder: (context, index) {
+                  var conversation = allConversations[index];
+                  var chatId = conversation['chatId'];
+                  var groupName = conversation['groupName'];
+                  bool isGroup = conversation['isGroup'] ?? false; // Vérifier si c'est un groupe
+
+                  return GestureDetector(
+                    onTap: () {
+                      // Naviguer vers la page appropriée en fonction de isGroup
+                      if (isGroup) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ChatgroupPage(chatId: chatId, recipientName: groupName),
+                          ),
+                        );
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ChatclassPage(chatId: chatId, recipientName: groupName),
+                          ),
+                        );
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                      child: Column(
+                        children: [
+                          CircleAvatar(
+                            radius: 30,
+                            backgroundColor: Colors.blue,
+                            child: Text(groupName[0], style: const TextStyle(color: Colors.white, fontSize: 20)),
+                          ),
+                          const SizedBox(height: 5),
+                          Flexible(
+                            child: Text(groupName, style: const TextStyle(color: Colors.white)),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            );
+          },
         );
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min, // Ajouté pour éviter le problème de hauteur illimitée
-          children: [
-            CircleAvatar(
-              radius: 30,
-              backgroundColor: Colors.blue,
-              child: Text(classe ?? '', style: const TextStyle(color: Colors.white, fontSize: 20)),
-            ),
-            const SizedBox(height: 5),
-            Text(classe ?? '', style: const TextStyle(color: Colors.white)),
-          ],
-        ),
-      ),
     );
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchTeacherConversations() async {
+    List<Map<String, dynamic>> conversations = [];
+
+    if (currentUserId == null) return conversations;
+
+    // Récupérer la classe de l'étudiant
+    DocumentSnapshot studentSnapshot = await FirebaseFirestore.instance
+        .collection('Etudiants')
+        .doc(currentUserId)
+        .get();
+
+    if (!studentSnapshot.exists) return conversations;
+
+    String studentClass = studentSnapshot['classe'];
+
+    // Parcourir les enseignants
+    QuerySnapshot teachersSnapshot = await FirebaseFirestore.instance
+        .collection('Enseignants')
+        .get();
+
+    for (var teacherDoc in teachersSnapshot.docs) {
+      // Vérifier si l'enseignant enseigne dans la classe de l'étudiant
+      QuerySnapshot matieresSnapshot = await FirebaseFirestore.instance
+          .collection('Enseignants')
+          .doc(teacherDoc.id)
+          .collection('Matieres')
+          .get();
+
+      // Vérifier si l'une des matières (documents) a un ID correspondant à la classe de l'étudiant
+      bool teachesClass = matieresSnapshot.docs.any((doc) => doc.id == studentClass);
+
+      if (teachesClass) {
+        // Récupérer les conversations de l'enseignant pour cette classe
+        QuerySnapshot chatsSnapshot = await FirebaseFirestore.instance
+            .collection('Users')
+            .doc(teacherDoc.id)
+            .collection('UserChats')
+            .where('groupName', isEqualTo: studentClass)
+            .get();
+
+        for (var chatDoc in chatsSnapshot.docs) {
+          conversations.add({
+            'chatId': chatDoc.id,
+            'groupName': chatDoc['groupName'],
+          });
+        }
+      }
+    }
+
+    return conversations;
   }
 
   Widget _buildConversationList() {
@@ -154,7 +277,11 @@ class MessagesPageState extends State<MessagesPage> {
     }
 
     return StreamBuilder(
-      stream: FirebaseFirestore.instance.collection('Users').doc(currentUserId).collection('UserChats').snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('Users')
+          .doc(currentUserId)
+          .collection('UserChats')
+          .snapshots(),
       builder: (context, AsyncSnapshot<QuerySnapshot> snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -163,15 +290,15 @@ class MessagesPageState extends State<MessagesPage> {
           return const Center(child: Text("Aucune conversation", style: TextStyle(color: Colors.white)));
         }
 
-        var conversations = snapshot.data!.docs;
+        var conversations = snapshot.data!.docs.where((doc) {
+          return !doc.id.contains('group');
+        }).toList();
 
         return ListView.builder(
           itemCount: conversations.length,
           itemBuilder: (context, index) {
             var conversation = conversations[index];
-            var chatId = conversation['chatId'];
-            var isGroup = conversation['isGroup'];
-            var groupName = conversation['groupName'];
+            var chatId = conversation.id;
 
             return FutureBuilder<Map<String, String>>(
               future: _getRecipientInfo(chatId),
@@ -184,14 +311,16 @@ class MessagesPageState extends State<MessagesPage> {
                 }
 
                 var recipientInfo = recipientSnapshot.data!;
-                var recipientName = isGroup ? groupName : "${recipientInfo['nom']} ${recipientInfo['prenom']}";
+                var recipientName = "${recipientInfo['nom']} ${recipientInfo['prenom']}";
                 var recipientType = recipientInfo['type'];
 
                 return StreamBuilder(
                   stream: FirebaseFirestore.instance
-                      .collection('Chats')
+                      .collection('Users')
+                      .doc(currentUserId)
+                      .collection('UserChats')
                       .doc(chatId)
-                      .collection('messages')
+                      .collection('Messages')
                       .orderBy('timestamp', descending: true)
                       .limit(1)
                       .snapshots(),
