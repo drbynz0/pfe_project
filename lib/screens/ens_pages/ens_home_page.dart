@@ -205,9 +205,10 @@ class TeacherHomePageContent extends StatelessWidget {
                       DataCell(Text(className)),
                       DataCell(Text(numberOfSubjects.toString())),
                     ]);
-                  }).toList(),
-                  title: S.of(context).classManagement, // Utilisez les traductions ici
-                  subtitle: S.of(context).classAndStudentManagement, // Utilisez les traductions ici
+                  }).toList(),                 
+                  title: S.of(context).classManagement,
+                  subtitle: S.of(context).classAndStudentManagement,
+                  indice: 'ClasseMatieres', // Utilisez les traductions ici
                   icon: Icons.arrow_forward,
                   color: Colors.pinkAccent,
                   tileColor: const Color.fromARGB(0, 255, 255, 255),
@@ -258,7 +259,8 @@ class TeacherHomePageContent extends StatelessWidget {
                     ]);
                   }).toList(),
                   title: S.of(context).classAndStudentManagement, // Utilisez les traductions ici
-                  subtitle: S.of(context).studentListByClass, // Utilisez les traductions ici
+                  subtitle: S.of(context).studentListByClass,
+                  indice: 'ClasseEleves', // Utilisez les traductions ici
                   icon: Icons.arrow_forward,
                   color: Colors.lightBlueAccent,
                   tileColor: const Color.fromARGB(0, 255, 255, 255),
@@ -271,7 +273,8 @@ class TeacherHomePageContent extends StatelessWidget {
         const SizedBox(height: 16),
         CustomCard(
           title: S.of(context).bulletinManagement, // Utilisez les traductions ici
-          subtitle: S.of(context).studentBulletin, // Utilisez les traductions ici
+          subtitle: S.of(context).studentBulletin,
+          indice: 'bulletins',
           icon: Icons.arrow_forward,
           color: Colors.orangeAccent,
           tileColor: const Color.fromARGB(1, 25, 139, 201),

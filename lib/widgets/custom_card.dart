@@ -12,11 +12,13 @@ class CustomCard extends StatelessWidget {
   final Color color;
   final List<DataColumn>? columns;
   final List<DataRow>? rows;
+  final String indice;
 
   const CustomCard({
     super.key,
     required this.title,
     required this.subtitle,
+    required this.indice,
     required this.icon,
     required this.color,
     required this.tileColor,
@@ -74,14 +76,14 @@ class CustomCard extends StatelessWidget {
               subtitle: Text(subtitle),
               trailing: Icon(icon),
               onTap: () {
-                if (title == "Gestion des classes et de matières") {
+                if (indice == "ClasseMatieres") {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const GestionClassesMatieres(),
                     ),
                   );
-                } else if (title == "Gestion des classes et des élèves") {
+                } else if (indice == "ClasseEleves") {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
