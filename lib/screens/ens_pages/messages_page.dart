@@ -17,11 +17,30 @@ class MessagesPageState extends State<MessagesPage> {
   String? currentUserId;
   List<String> classes = [];
   List<String> selectedUsers = [];
+  List<Map<String, dynamic>> allConversations = []; // Liste de toutes les conversations
+  List<Map<String, dynamic>> filteredConversations = [];
 
   @override
   void initState() {
     super.initState();
     _getCurrentUserId();
+    searchController.addListener(_filterConversations); 
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose(); // Nettoyer le contrôleur
+    super.dispose();
+  }
+
+  void _filterConversations() {
+    final query = searchController.text.toLowerCase();
+    setState(() {
+      filteredConversations = allConversations.where((conversation) {
+        final groupName = conversation['groupName'].toString().toLowerCase();
+        return groupName.contains(query);
+      }).toList();
+    });
   }
 
   Future<void> _getCurrentUserId() async {
@@ -165,6 +184,9 @@ class MessagesPageState extends State<MessagesPage> {
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
         ),
         style: const TextStyle(color: Colors.white),
+        onChanged: (value) {
+          _filterConversations(); // Filtrer les conversations à chaque changement de texte
+        },
       ),
     );
   }

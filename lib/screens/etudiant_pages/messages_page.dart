@@ -17,11 +17,30 @@ class MessagesPageState extends State<MessagesPage> {
   TextEditingController searchController = TextEditingController();
   String? currentUserId;
   List<String> classes = [];
+  List<Map<String, dynamic>> allConversations = [];
+  List<Map<String, dynamic>> filteredConversations = [];
 
   @override
   void initState() {
     super.initState();
     _getCurrentUserId();
+    searchController.addListener(_filterConversations);  
+  }
+
+  @override
+  void dispose() {
+    searchController.dispose(); // Nettoyer le contrôleur
+    super.dispose();
+  }
+
+    void _filterConversations() {
+    final query = searchController.text.toLowerCase();
+    setState(() {
+      filteredConversations = allConversations.where((conversation) {
+        final groupName = conversation['groupName'].toString().toLowerCase();
+        return groupName.contains(query);
+      }).toList();
+    });
   }
 
   Future<void> _getCurrentUserId() async {
@@ -113,6 +132,9 @@ class MessagesPageState extends State<MessagesPage> {
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
         ),
         style: const TextStyle(color: Colors.white),
+        onChanged: (value) {
+          _filterConversations(); // Filtrer les conversations à chaque changement de texte
+        },
       ),
     );
   }
@@ -150,12 +172,12 @@ class MessagesPageState extends State<MessagesPage> {
             }
 
             // Combiner les deux listes de conversations
-            List<Map<String, dynamic>> allConversations = [];
+            allConversations = [];
             allConversations.addAll(groupConversations.map((doc) {
               return {
                 'chatId': doc.id,
                 'groupName': doc['groupName'],
-                'isGroup': doc['isGroup'] ?? false, // Récupérer le champ isGroup
+                'isGroup': doc['isGroup'] ?? false,
               };
             }));
 
@@ -163,20 +185,26 @@ class MessagesPageState extends State<MessagesPage> {
               allConversations.addAll(teacherConversationsSnapshot.data!);
             }
 
+            // Appliquer le filtre de recherche
+            filteredConversations = allConversations.where((conversation) {
+              final query = searchController.text.toLowerCase();
+              final groupName = conversation['groupName'].toString().toLowerCase();
+              return groupName.contains(query);
+            }).toList();
+
             return SizedBox(
               height: 80,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
-                itemCount: allConversations.length,
+                itemCount: filteredConversations.length,
                 itemBuilder: (context, index) {
-                  var conversation = allConversations[index];
+                  var conversation = filteredConversations[index];
                   var chatId = conversation['chatId'];
                   var groupName = conversation['groupName'];
-                  bool isGroup = conversation['isGroup'] ?? false; // Vérifier si c'est un groupe
+                  bool isGroup = conversation['isGroup'] ?? false;
 
                   return GestureDetector(
                     onTap: () {
-                      // Naviguer vers la page appropriée en fonction de isGroup
                       if (isGroup) {
                         Navigator.push(
                           context,
