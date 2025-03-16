@@ -65,18 +65,51 @@ class SignupPageState extends State<SignupPage> {
         "provisional_password": FieldValue.delete(),
       });
 
-      // Vérifier le type d'utilisateur et ajouter l'enseignant à la collection Enseignant
-      var userDoc = await FirebaseFirestore.instance.collection("Users").doc(identifier).get();
-      if (userDoc.exists && userDoc.data()?['type'] == 'enseignant') {
-        String uid = userDoc.data()?['uid'];
-        String nom = userDoc.data()?['nom'];
-        String prenom = userDoc.data()?['prenom'];
-        String email = userDoc.data()?['email'];
-        String dateNaissance = userDoc.data()?['date_naissance'];
-        String lieuNaissance = userDoc.data()?['lieu_naissance'];
+// Vérifier le type d'utilisateur et ajouter l'enseignant à la collection Enseignant
+var userDoc = await FirebaseFirestore.instance.collection("Users").doc(identifier).get();
+if (userDoc.exists && userDoc.data()?['type'] == 'enseignant') {
+  String uid = userDoc.data()?['uid'];
+  String nom = userDoc.data()?['nom'];
+  String prenom = userDoc.data()?['prenom'];
+  String email = userDoc.data()?['email'];
+  String dateNaissance = userDoc.data()?['date_naissance'];
+  String lieuNaissance = userDoc.data()?['lieu_naissance'];
 
-        TeacherService teacherService = TeacherService();
-        await teacherService.addTeacher(uid, identifier, nom, prenom, email, dateNaissance, lieuNaissance);
+  // Récupérer la sous-collection Matieres
+  var matieresSnapshot = await FirebaseFirestore.instance
+      .collection("Users")
+      .doc(identifier)
+      .collection("Matieres")
+      .get();
+
+  // Convertir les données des matières en une structure appropriée
+  Map<String, List<Map<String, dynamic>>> matieresParClasse = {};
+  for (var matiereDoc in matieresSnapshot.docs) {
+    String classe = matiereDoc.id;
+    List<Map<String, dynamic>> matieres = (matiereDoc.data()['matieres'] as List<dynamic>)
+        .map((m) => {
+              'nom': m['nom'],
+              'coef': m['coef'],
+              'jour': m['jour'],
+              'horaire': m['horaire'],
+            })
+        .toList();
+    matieresParClasse[classe] = matieres;
+  }
+
+  // Ajouter l'enseignant avec ses matières
+  TeacherService teacherService = TeacherService();
+  await teacherService.addTeacher(
+    uid,
+    identifier,
+    nom,
+    prenom,
+    email,
+    dateNaissance,
+    lieuNaissance,
+    matieresParClasse, // Passer les matières par classe
+  );
+
 
       } else if (userDoc.exists && userDoc.data()?['type'] == 'etudiant') {
         String uid = userDoc.data()?['uid'];
