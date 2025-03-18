@@ -84,7 +84,7 @@ class ChatgroupPageState extends State<ChatgroupPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF082E4A),
       appBar: AppBar(
-        title: Text(widget.recipientName, style: TextStyle(fontSize: 20, color: Colors.white)),
+        title: Text("Groupe Chat (${widget.recipientName})", style: TextStyle(fontSize: 20, color: Colors.white)),
         backgroundColor: const Color(0xFF140C5F),
         iconTheme: const IconThemeData(color: Colors.white),
       ),

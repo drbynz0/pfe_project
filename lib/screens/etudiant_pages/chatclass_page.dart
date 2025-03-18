@@ -450,18 +450,7 @@ class ChatclassPageState extends State<ChatclassPage> {
 
     // Vérifiez si la collection de messages est vide
     CollectionReference messagesCollectionRef = chatDocRef.collection("Messages");
-    DocumentSnapshot chatDocSnapshot = await chatDocRef.get();
     QuerySnapshot messageSnapshot = await messagesCollectionRef.get();
-
-    if (!chatDocSnapshot.exists) {
-      // Créez le document de chat s'il n'existe pas
-      await chatDocRef.set({
-        'participants': [currentUserId, widget.recipientName],
-        'isGroup': true,
-        'groupName': widget.recipientName,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-    }
 
     if (messageSnapshot.docs.isEmpty) {
       // Créez le premier message

@@ -84,7 +84,7 @@ class ChatgroupPageState extends State<ChatgroupPage> {
     return Scaffold(
       backgroundColor: const Color(0xFF082E4A),
       appBar: AppBar(
-        title: Text(widget.recipientName, style: TextStyle(fontSize: 20, color: Colors.white)),
+        title: Text("Groupe Chat (${widget.recipientName})", style: TextStyle(fontSize: 20, color: Colors.white)),
         backgroundColor: const Color(0xFF140C5F),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
@@ -455,17 +455,6 @@ class ChatgroupPageState extends State<ChatgroupPage> {
 
     // Vérifiez si la collection de messages est vide
     CollectionReference messagesCollectionRef = chatDocRef.collection("Messages");
-    DocumentSnapshot chatDocSnapshot = await chatDocRef.get();
-
-    if (!chatDocSnapshot.exists) {
-      // Créez le document de chat s'il n'existe pas
-      await chatDocRef.set({
-        'participants': [currentUserId, widget.recipientName],
-        'isGroup': true,
-        'groupName': widget.recipientName,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-    }
 
     // Ajoutez le message à la collection de messages de l'utilisateur actuel
     await messagesCollectionRef.add({

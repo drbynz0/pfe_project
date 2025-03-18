@@ -90,13 +90,14 @@ class MessagesPageState extends State<MessagesPage> {
       if (!chatSnapshot.exists) {
         // Créer la conversation dans Firestore
         await FirebaseFirestore.instance
-            .collection('Users')
-            .doc(currentUserId)
-            .collection('UserChats')
-            .doc(chatId)
-            .set({
+          .collection('Users')
+          .doc(currentUserId)
+          .collection('UserChats')
+          .doc(chatId)
+          .set({
           'chatId': chatId,
-          'groupName': className,
+          'participants': [currentUserId, className],
+          'type_group': className,
           'isGroup': false,
           'timestamp': FieldValue.serverTimestamp(),
         });
@@ -222,23 +223,22 @@ class MessagesPageState extends State<MessagesPage> {
             itemBuilder: (context, index) {
               var conversation = groupConversations[index];
               var chatId = conversation.id;
-              var groupName = conversation['groupName'];
+              String typeGroup = conversation['type_group'];
               bool isGroup = conversation['isGroup'] ?? false;
-
               return GestureDetector(
                 onTap: () {
                   if (isGroup) {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ChatgroupPage(chatId: chatId, recipientName: groupName),
+                        builder: (context) => ChatgroupPage(chatId: chatId, recipientName: typeGroup),
                       ),
                     );
                   } else {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ChatclassPage(chatId: chatId, recipientName: groupName),
+                        builder: (context) => ChatclassPage(chatId: chatId, recipientName: typeGroup),
                       ),
                     );
                   }
@@ -250,11 +250,11 @@ class MessagesPageState extends State<MessagesPage> {
                       CircleAvatar(
                         radius: 30,
                         backgroundColor: Colors.blue,
-                        child: Text(groupName[0], style: const TextStyle(color: Colors.white, fontSize: 20)),
+                        child: Text(typeGroup[0], style: const TextStyle(color: Colors.white, fontSize: 20)),
                       ),
                       const SizedBox(height: 5),
                       Flexible(
-                        child: Text(groupName, style: const TextStyle(color: Colors.white)),
+                        child: Text(typeGroup, style: const TextStyle(color: Colors.white)),
                       ),
                     ],
                   ),
@@ -433,7 +433,7 @@ class MessagesPageState extends State<MessagesPage> {
                 ],
               ),
               SizedBox(
-                height: 300, // Définit une hauteur fixe pour éviter l'overflow
+                height: 300,
                 child: TabBarView(
                   children: [
                     _buildUserSelectionList("Étudiant"),
@@ -480,7 +480,7 @@ class MessagesPageState extends State<MessagesPage> {
                 var userName = "${user['nom']} ${user['prenom']}";
                 var className = "";
                 if(type == "Étudiant") {
-                  className = "($user['classe'])";
+                  className = user['classe'];
                 } else {
                  className = "";
                 }
@@ -495,7 +495,7 @@ class MessagesPageState extends State<MessagesPage> {
                                     style: const TextStyle(fontSize: 16.0, color: Colors.black),
                                   ),
                                   TextSpan(
-                                    text: className,
+                                    text: "($className)",
                                     style: const TextStyle(fontSize: 12.0, color: Colors.grey),
                                   ),
                                 ],
@@ -533,6 +533,7 @@ class MessagesPageState extends State<MessagesPage> {
       await FirebaseFirestore.instance.collection('Users').doc(participant).collection('UserChats').doc(groupId).set({
         'chatId': groupId,
         'isGroup': true,
+        'type_group': conversationType,
         'groupName': participants,
         'timestamp': FieldValue.serverTimestamp(),
       });
@@ -542,7 +543,7 @@ class MessagesPageState extends State<MessagesPage> {
       // ignore: use_build_context_synchronously
       context,
       MaterialPageRoute(
-        builder: (context) => ChatgroupPage(chatId: groupId, recipientName: 'Group Chat($conversationType)'),
+        builder: (context) => ChatgroupPage(chatId: groupId, recipientName: conversationType),
       ),
     );
   }

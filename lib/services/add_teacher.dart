@@ -41,8 +41,8 @@ class TeacherService {
         await teacherCollection
             .doc(identifier)
             .collection("Notes")
-            .doc(classe) // Même ID que dans Matieres
-            .set({}); // Document vide
+            .doc(classe)
+            .set({});
       }
     } catch (e) {
       throw Exception("Erreur lors de l'ajout de l'enseignant : ${e.toString()}");

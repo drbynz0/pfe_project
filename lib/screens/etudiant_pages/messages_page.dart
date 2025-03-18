@@ -176,7 +176,7 @@ class MessagesPageState extends State<MessagesPage> {
             allConversations.addAll(groupConversations.map((doc) {
               return {
                 'chatId': doc.id,
-                'groupName': doc['groupName'],
+                'type_group': doc['type_group'] ?? '',
                 'isGroup': doc['isGroup'] ?? false,
               };
             }));
@@ -188,8 +188,8 @@ class MessagesPageState extends State<MessagesPage> {
             // Appliquer le filtre de recherche
             filteredConversations = allConversations.where((conversation) {
               final query = searchController.text.toLowerCase();
-              final groupName = conversation['groupName'].toString().toLowerCase();
-              return groupName.contains(query);
+              final typeGroup = conversation['type_group'];
+              return typeGroup.contains(query);
             }).toList();
 
             return SizedBox(
@@ -200,7 +200,7 @@ class MessagesPageState extends State<MessagesPage> {
                 itemBuilder: (context, index) {
                   var conversation = filteredConversations[index];
                   var chatId = conversation['chatId'];
-                  var groupName = conversation['groupName'];
+                  var typeGroup = conversation['type_group'];
                   bool isGroup = conversation['isGroup'] ?? false;
 
                   return GestureDetector(
@@ -209,14 +209,14 @@ class MessagesPageState extends State<MessagesPage> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ChatgroupPage(chatId: chatId, recipientName: groupName),
+                            builder: (context) => ChatgroupPage(chatId: chatId, recipientName: typeGroup),
                           ),
                         );
                       } else {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ChatclassPage(chatId: chatId, recipientName: groupName),
+                            builder: (context) => ChatclassPage(chatId: chatId, recipientName: typeGroup),
                           ),
                         );
                       }
@@ -228,11 +228,11 @@ class MessagesPageState extends State<MessagesPage> {
                           CircleAvatar(
                             radius: 30,
                             backgroundColor: Colors.blue,
-                            child: Text(groupName[0], style: const TextStyle(color: Colors.white, fontSize: 20)),
+                            child: Text(typeGroup[0], style: const TextStyle(color: Colors.white, fontSize: 20)),
                           ),
                           const SizedBox(height: 5),
                           Flexible(
-                            child: Text(groupName, style: const TextStyle(color: Colors.white)),
+                            child: Text(typeGroup, style: const TextStyle(color: Colors.white)),
                           ),
                         ],
                       ),
@@ -284,13 +284,13 @@ class MessagesPageState extends State<MessagesPage> {
             .collection('Users')
             .doc(teacherDoc.id)
             .collection('UserChats')
-            .where('groupName', isEqualTo: studentClass)
+            .where('type_group', isEqualTo: studentClass)
             .get();
 
         for (var chatDoc in chatsSnapshot.docs) {
           conversations.add({
             'chatId': chatDoc.id,
-            'groupName': chatDoc['groupName'],
+            'type_group': chatDoc['type_group'] ?? 'Groupe inconnu',
           });
         }
       }
