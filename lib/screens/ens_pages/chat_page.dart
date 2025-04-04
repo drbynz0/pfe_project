@@ -1,11 +1,15 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 // ignore: deprecated_member_use, avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:http/http.dart' as http;
 import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:typed_data';
@@ -471,6 +475,23 @@ Future<void> pickFile() async {
     });
 
     messageController.clear();
+
+  DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(currentUserId).get();
+  // Récupérer le token FCM du destinataire
+  DocumentSnapshot receiverDoc = await FirebaseFirestore.instance.collection('Users').doc(receiverId).get(); 
+  String? token = receiverDoc['fcm_token'];
+
+  if (token != null) {
+    // ignore: deprecated_member_use
+    await FirebaseMessaging.instance.sendMessage(
+      to: token,
+      data: {
+        'title': 'Nouveau message de ${userDoc['nom']} ${userDoc['prenom']}',
+        'body': messageText,
+      },
+    );
+  }
+
   }
 
   void _downloadFile(String url) async {
@@ -482,4 +503,36 @@ Future<void> pickFile() async {
       throw 'Could not launch $url';
     }
   }
+
+  /// 📩 Envoyer une notification via FCM
+Future<void> sendPushNotification(String token, String title, String body) async {
+  const String serverKey =
+      "YOUR_SERVER_KEY"; // 🔥 Mets ici ta clé serveur Firebase
+
+  final response = await http.post(
+    Uri.parse('https://fcm.googleapis.com/fcm/send'),
+    headers: <String, String>{
+      'Content-Type': 'application/json',
+      'Authorization': 'key=$serverKey',
+    },
+    body: jsonEncode({
+      'to': token,
+      'notification': {
+        'title': title,
+        'body': body,
+        'sound': 'default',
+      },
+    }),
+  );
+
+  if (response.statusCode == 200) {
+    // ignore: avoid_print
+    print("✅ Notification envoyée !");
+  } else {
+    // ignore: avoid_print
+    print("❌ Erreur lors de l'envoi : ${response.body}");
+  }
 }
+}
+
+

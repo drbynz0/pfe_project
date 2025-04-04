@@ -16,12 +16,33 @@ import '/services/matiere_service.dart';
 import '/providers/locale_provider.dart';
 import '/providers/theme_provider.dart';
 import '/providers/trip_provider.dart';
+//import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+//import '/services/push_notification_service.dart';
+
+// Initialiser les notifications locales
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = 
+    FlutterLocalNotificationsPlugin();
+
+    String? currentUserId;
+
+// Handler lorsqu'on reçoit une notification en arrière-plan
+/*Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print("Message reçu en arrière-plan : ${message.messageId}");
+}*/
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  // 🔥 Initialiser les notifications
+  //final pushNotificationService = PushNotificationService();
+  //await pushNotificationService.initialize();
+
+  //FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
   runApp(
     MultiProvider(

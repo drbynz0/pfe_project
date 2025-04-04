@@ -9,7 +9,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '/providers/locale_provider.dart';
 import '/generated/l10n.dart';
-import '/screens/ens_pages/profile_page.dart';
+import 'profile_page.dart';
+import 'notifications_page.dart';
 
 class TeacherHomePage extends StatefulWidget {
   const TeacherHomePage({super.key});
@@ -64,7 +65,7 @@ class TeacherHomePageState extends State<TeacherHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final String? teacherId = currentUserId;
+    final String? teacherId = FirebaseAuth.instance.currentUser?.uid;
 
     return Scaffold(
       backgroundColor: const Color(0xFF082E4A),
@@ -77,7 +78,12 @@ class TeacherHomePageState extends State<TeacherHomePage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications, color: Colors.white, size: 24),
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const NotificationsPage()),
+              );
+            },
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.account_circle, color: Colors.white, size: 30),

@@ -55,6 +55,7 @@ class DeviceService {
     }
 
     // Obtenir la position actuelle
+    // ignore: deprecated_member_use
     Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
 
     // Utiliser le géocodage inversé pour obtenir le nom du pays

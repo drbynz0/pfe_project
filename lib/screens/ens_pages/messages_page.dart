@@ -482,7 +482,7 @@ class MessagesPageState extends State<MessagesPage> {
                 if(type == "Étudiant") {
                   className = user['classe'];
                 } else {
-                 className = "";
+                  className = "";
                 }
                 var userId = user.id;
 

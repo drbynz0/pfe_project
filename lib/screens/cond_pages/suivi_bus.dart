@@ -1,5 +1,7 @@
 import 'dart:async';
-
+import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_animated_marker/flutter_map_animated_marker.dart';
@@ -32,6 +34,7 @@ class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixi
     super.initState();
     _checkPermissions();
     _listenToLocationUpdates();
+    _sendBusPosition();
   }
 
   Future<void> _checkPermissions() async {
@@ -64,6 +67,25 @@ class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixi
         LatLng(locationData.latitude ?? 0, locationData.longitude ?? 0),
         _mapController.camera.zoom,
       );
+    });
+  }
+
+  void _sendBusPosition() async {
+
+    FirebaseDatabase.instanceFor(
+      app: Firebase.app(),
+      databaseURL: "https://console.firebase.google.com/u/1/project/pfe-project-61a90/database/pfe-project-61a90-default-rtdb/data/~2F", // 🔥 Mets ton URL ici
+    );
+    DatabaseReference busPositionRef = FirebaseDatabase.instance.ref("bus_position");
+
+    Geolocator.getPositionStream().listen((Position position) {
+      print("Position envoyée : ${position.latitude}, ${position.longitude}");
+      
+      busPositionRef.update({
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'timestamp': DateTime.now().millisecondsSinceEpoch, // Ajout d'un timestamp
+      });
     });
   }
 
@@ -118,7 +140,6 @@ class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixi
                 children: [
                   TileLayer(
                     urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                    subdomains: ['a', 'b', 'c'],
                     tileProvider: CancellableNetworkTileProvider(), // Utilisation de CancellableTileProvider
                   ),
                   if (locationData != null)

@@ -87,34 +87,30 @@ class NotesPageState extends State<NotesPage> {
     return [];
   }
 
-  Future<void> _loadNotes(String year) async {
-    if (studentDocId == null) return;
+Future<void> _loadNotes(String year) async {
+  if (studentDocId == null) return;
 
-    var doc = await FirebaseFirestore.instance
-        .collection('Etudiants')
-        .doc(studentDocId)
-        .get();
+  var doc = await FirebaseFirestore.instance
+      .collection('Etudiants')
+      .doc(studentDocId)
+      .get();
 
-    if (doc.exists && doc.data() != null) {
-      Map<String, dynamic> data = doc.data()!;
-      
-      if (data['Notes'] is Map<String, dynamic> && data['Notes'][year] is List) {
-        List<dynamic> yearNotes = data['Notes'][year];
+  if (doc.exists && doc.data() != null) {
+    Map<String, dynamic> data = doc.data()!;
 
-        // Vérifie si la première entrée de la liste est bien une map
-        if (yearNotes.isNotEmpty && yearNotes[0] is Map<String, dynamic>) {
-          setState(() {
-            selectedYear = year;
-            notes = Map<String, dynamic>.from(yearNotes[0]);
-          });
-        } else {
-          const SnackBar(content: Text('Les données de l\'année ne sont pas au bon format.'));
-        }
-      } else {
-        SnackBar(content: Text('Aucune note disponible pour l\'année $year.'));
-      }
+    if (data['Notes'] is Map<String, dynamic> && data['Notes'][year] is Map<String, dynamic>) {
+      setState(() {
+        selectedYear = year;
+        notes = Map<String, dynamic>.from(data['Notes'][year]); // ✅ Correction ici
+      });
+    } else {
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Aucune note disponible pour l\'année $year.')),
+      );
     }
   }
+}
 
   Future<void> _exportToPDF() async {
     if (selectedYear == null || notes.isEmpty) {

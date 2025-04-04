@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+//import 'package:firebase_messaging/firebase_messaging.dart';
 import 'device_service.dart';
 
 class AuthService {
@@ -15,6 +16,15 @@ class AuthService {
     userDoc = await FirebaseFirestore.instance.collection('Users').doc(id).get();
 
     if (userDoc.exists) {
+          // Obtenir le token
+    //String? fcmToken = await FirebaseMessaging.instance.getToken();
+
+    /*if (fcmToken != null) {
+      // Enregistrer le token dans Firestore sous l'utilisateur connecté
+      await FirebaseFirestore.instance.collection('Users').doc(id).update({
+        'fcm_token': fcmToken,
+      });
+    }*/
       String userType = userDoc['type'];
 
       if (userType == 'enseignant') {
@@ -39,6 +49,7 @@ class AuthService {
     } else {
       // ignore: use_build_context_synchronously
       _showErrorDialog(context, "Utilisateur non trouvé");
+      return;
     }
   }
 
