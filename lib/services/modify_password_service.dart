@@ -10,7 +10,14 @@ Future<void> showModifyPasswordDialog(BuildContext context) async {
     context: context,
     builder: (context) {
       return Theme(
-        data: ThemeData.dark(), // Appliquer un thème sombre
+        data: ThemeData.dark().copyWith(
+          textTheme: const TextTheme(
+            bodyLarge: TextStyle(color: Colors.white),
+            bodyMedium: TextStyle(color: Colors.white),
+          ),
+          iconTheme: const IconThemeData(color: Colors.white),
+          cardColor: const Color.fromARGB(255, 47, 48, 81), dialogTheme: DialogThemeData(backgroundColor: const Color.fromARGB(255, 35, 43, 77)),
+        ),
         child: AlertDialog(
           title: const Text("Réinitialiser le mot de passe"),
           content: Column(

@@ -75,6 +75,7 @@ class GestionClassesMatieresState extends State<GestionClassesMatieres> {
       body: Column(
         children: [
           _buildClassSelection(),
+          const SizedBox(height: 10),
           Expanded(
             child: teacherDocId == null || selectedClass == null
                 ? const Center(child: CircularProgressIndicator())
@@ -100,41 +101,92 @@ class GestionClassesMatieresState extends State<GestionClassesMatieres> {
                       }
 
                       var matieres = List<Map<String, dynamic>>.from(snapshot.data!['matieres']);
-
-                      return ListView.builder(
-                        itemCount: matieres.length,
-                        itemBuilder: (context, index) {
-                          var matiere = matieres[index];
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white, // Fond blanc
-                                borderRadius: BorderRadius.circular(12), // Bord arrondi
-                                boxShadow: [
-                                  BoxShadow(
-                                    // ignore: deprecated_member_use
-                                    color: Colors.black.withOpacity(0.1),
-                                    blurRadius: 4,
-                                    spreadRadius: 2,
-                                    offset: const Offset(2, 2), // Ombre légère
-                                  ),
-                                ],
-                              ),
-                              child: ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                title: Text(
-                                  matiere['nom'] ?? "Nom inconnu",
-                                  style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
-                                ),
-                                subtitle: Text(
-                                  "Jours : ${matiere['jour']} | Horaire : ${matiere['horaire']} | Coefficient : ${matiere['coef']}",
-                                  style: const TextStyle(color: Colors.grey),
+                  
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: DataTable(
+                          columns: const [
+                            DataColumn(
+                              label: Center(
+                                child: Text(
+                                  "Matière",
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
                                 ),
                               ),
                             ),
-                          );
-                        },
+                            DataColumn(
+                              label: Center(
+                                child: Text(
+                                  "Jours",
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            DataColumn(
+                              label: Center(
+                                child: Text(
+                                  "Horaire",
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                                ),
+                              ),
+                            ),
+                            DataColumn(
+                              label: Center(
+                                child: Text(
+                                  "Coefficient",
+                                  style: TextStyle(fontWeight: FontWeight.bold, color: Colors.black),
+                                ),
+                              ),
+                            ),
+                          ],
+                          rows: matieres.map((matiere) {
+                            return DataRow(
+                              cells: [
+                                DataCell(
+                                  Center(
+                                    child: Text(
+                                      matiere['nom'] ?? "Nom inconnu",
+                                      style: const TextStyle(color: Colors.black),
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  Center(
+                                    child: Text(
+                                      matiere['jour'] ?? "N/A",
+                                      style: const TextStyle(color: Colors.black),
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  Center(
+                                    child: Text(
+                                      matiere['horaire'] ?? "N/A",
+                                      style: const TextStyle(color: Colors.black),
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  Center(
+                                    child: Text(
+                                      matiere['coef']?.toString() ?? "N/A",
+                                      style: const TextStyle(color: Colors.black),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            );
+                          }).toList(),
+                          headingRowColor: WidgetStateProperty.all(const Color.fromARGB(255, 104, 135, 238)),
+                          dataRowColor: WidgetStateProperty.all(Colors.white),
+                          border: TableBorder.all(
+                            color: Colors.white,
+                            width: 1,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          columnSpacing: 20,
+                          horizontalMargin: 16,
+                        ),
                       );
                     },
                   ),

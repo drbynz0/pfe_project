@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 // ignore: deprecated_member_use, avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:firebase_storage/firebase_storage.dart';
+//import 'package:flutter/foundation.dart' show kIsWeb;
+//import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
-import 'dart:io';
+//import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:typed_data';
+//import 'dart:typed_data';
 // ignore: unused_import
 import 'package:path/path.dart' as path;
 
@@ -371,7 +370,7 @@ class ChatgroupPageState extends State<ChatgroupPage> {
           ),
           IconButton(
             icon: const Icon(Icons.send, color: Colors.blue),
-            onPressed: _uploadFile,
+            onPressed: null,
           ),
         ],
       ),
@@ -387,7 +386,7 @@ class ChatgroupPageState extends State<ChatgroupPage> {
     }
   }
 
-  void _uploadFile() async {
+/*  void _uploadFile() async {
     if (selectedFile == null) return;
 
     String fileName = selectedFile!.name; // ✅ Récupérer le nom du fichier sans erreur
@@ -430,7 +429,7 @@ class ChatgroupPageState extends State<ChatgroupPage> {
     setState(() {
       selectedFile = null;
     });
-  }
+  } */
 
   Future<void> pickFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles();

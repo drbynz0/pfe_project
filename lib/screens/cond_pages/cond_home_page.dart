@@ -1,9 +1,10 @@
 // lib/screens/cond_pages/cond_home_page.dart
 
 import 'package:flutter/material.dart';
+import 'package:p_f_e_project/screens/cond_pages/suivi_bus.dart';
 import 'package:p_f_e_project/services/auth_service.dart';
 import 'messages_page.dart';
-import 'suivi_bus.dart';
+import '/screens/cond_pages/settings.dart';
 class CondHomePage extends StatefulWidget {
     const CondHomePage({super.key});
   @override
@@ -14,8 +15,8 @@ class CondHomePageState extends State<CondHomePage> {
   int _selectedIndex = 0;
   final List<Widget> _pages = [
     const HomeScreen(),
-     const MessagesConducteurPage(),
-    const SuiviBusPage(),
+      const MessagesConducteurPage(),
+    SuiviBusPage(),
     const SettingsPage(),
   ];
 
@@ -39,7 +40,7 @@ class CondHomePageState extends State<CondHomePage> {
     return Scaffold(
       backgroundColor: const Color(0xFF082E4A),
       appBar: AppBar(
-        title: const Text(
+        automaticallyImplyLeading: false,        title: const Text(
           'School App',
           style: TextStyle(
             color: Colors.white,
@@ -139,19 +140,4 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// lib/screens/cond_pages/suivi_bus.dart
-
-
 // lib/screens/cond_pages/settings.dart
-class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key});
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Text(
-        'Paramètres du Conducteur',
-        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-      ),
-    );
-  }
-}

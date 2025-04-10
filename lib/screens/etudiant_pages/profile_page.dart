@@ -63,7 +63,7 @@ class ProfilePage extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 50,
-                          backgroundImage: NetworkImage(data['photo_url'] ?? 'https://placeimg.com/640/480/people'), // Remplacez par l'URL de l'image
+                          backgroundImage: AssetImage('lib/assets/images/icon_user_student.png'),
                         ),
                         const SizedBox(height: 15),
                         Text(

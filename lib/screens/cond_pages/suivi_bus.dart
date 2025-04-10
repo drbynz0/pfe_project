@@ -1,7 +1,7 @@
 import 'dart:async';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:geolocator/geolocator.dart';
+import 'dart:io' show Platform; // Import for platform checks
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:flutter_map_animated_marker/flutter_map_animated_marker.dart';
@@ -9,16 +9,19 @@ import 'package:geodesy/geodesy.dart' as geodesy;
 import 'package:latlong2/latlong.dart';
 import 'package:location/location.dart';
 import 'package:rxdart/subjects.dart';
-import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart'; // Importation du package
+import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 
 class SuiviBusPage extends StatefulWidget {
-  const SuiviBusPage({super.key});
+  
+  const SuiviBusPage({super.key}); // Modification du constructeur
 
   @override
   SuiviBusPageState createState() => SuiviBusPageState();
 }
 
 class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixin {
+  String? currentUserId; // ID de l'utilisateur actuel
+  String? busMatricule; // Variable to store the bus matricule
   final Location _location = Location();
   final MapController _mapController = MapController();
   final BehaviorSubject<LocationData> _locationStreamController = BehaviorSubject();
@@ -28,26 +31,81 @@ class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixi
   double _distance = 0.0;
   int _duration = 0;
   bool _isTripStarted = false;
+  late CollectionReference busPositionCollection; // Référence à la sous-collection Firestore
 
   @override
   void initState() {
     super.initState();
+    _initialize();
     _checkPermissions();
     _listenToLocationUpdates();
-    _sendBusPosition();
+  }
+
+  Future<void> _initialize() async {
+    await _getCurrentUserId();
+    await _getBusMatricule();
+    _initializeBusPositionCollection();
+    _startRealtimePositionUpdates();
+  }
+
+  void _initializeBusPositionCollection() {
+    if (currentUserId != null && busMatricule != null) {
+      busPositionCollection = FirebaseFirestore.instance
+          .collection('Conducteurs')
+          .doc(currentUserId)
+          .collection('Bus');
+    }
+  }
+
+  Future<void> _getCurrentUserId() async {
+    User? user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      String uid = user.uid;
+      QuerySnapshot userSnapshot = await FirebaseFirestore.instance
+          .collection('Users')
+          .where('uid', isEqualTo: uid)
+          .limit(1)
+          .get();
+
+      if (userSnapshot.docs.isNotEmpty) {
+        setState(() {
+          currentUserId = userSnapshot.docs.first.id;
+        });
+      }
+    }
+  }
+
+  Future<void> _getBusMatricule() async {
+    if (currentUserId == null) return;
+
+    DocumentSnapshot driverDoc = await FirebaseFirestore.instance
+        .collection('Conducteurs')
+        .doc(currentUserId)
+        .get();
+
+    if (driverDoc.exists) {
+      setState(() {
+        busMatricule = driverDoc['matricule_bus'];
+      });
+    }
   }
 
   Future<void> _checkPermissions() async {
-    bool serviceEnabled = await _location.serviceEnabled();
-    if (!serviceEnabled) {
-      serviceEnabled = await _location.requestService();
-      if (!serviceEnabled) return;
-    }
+    if (Platform.isAndroid || Platform.isIOS || Platform.isWindows) {
+      // Only check permissions on supported platforms
+      bool serviceEnabled = await _location.serviceEnabled();
+      if (!serviceEnabled) {
+        serviceEnabled = await _location.requestService();
+        if (!serviceEnabled) return;
+      }
 
-    PermissionStatus permissionGranted = await _location.hasPermission();
-    if (permissionGranted == PermissionStatus.denied) {
-      permissionGranted = await _location.requestPermission();
-      if (permissionGranted != PermissionStatus.granted) return;
+      PermissionStatus permissionGranted = await _location.hasPermission();
+      if (permissionGranted == PermissionStatus.denied) {
+        permissionGranted = await _location.requestPermission();
+        if (permissionGranted != PermissionStatus.granted) return;
+      }
+    } else {
+      print("Permissions check skipped for web.");
     }
   }
 
@@ -62,7 +120,6 @@ class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixi
       }
       _lastLocation = locationData;
 
-      // Déplacer la carte vers la nouvelle position
       _mapController.move(
         LatLng(locationData.latitude ?? 0, locationData.longitude ?? 0),
         _mapController.camera.zoom,
@@ -70,36 +127,63 @@ class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixi
     });
   }
 
-  void _sendBusPosition() async {
+  void _startRealtimePositionUpdates() async {
+    _location.onLocationChanged.listen((LocationData locationData) async {
+      if (locationData.latitude != null && locationData.longitude != null && busMatricule != null) {
+        try {
+          // Update the 'bus_position' document in the 'Conducteurs' collection
+          await busPositionCollection.doc('bus_position').set({
+            'matricule': busMatricule,
+            'latitude': locationData.latitude,
+            'longitude': locationData.longitude,
+            'heading': locationData.heading,
+            'speed': locationData.speed,
+            'timestamp': FieldValue.serverTimestamp(),
+            'actif': _isTripStarted,
+          }, SetOptions(merge: true));
 
-    FirebaseDatabase.instanceFor(
-      app: Firebase.app(),
-      databaseURL: "https://console.firebase.google.com/u/1/project/pfe-project-61a90/database/pfe-project-61a90-default-rtdb/data/~2F", // 🔥 Mets ton URL ici
-    );
-    DatabaseReference busPositionRef = FirebaseDatabase.instance.ref("bus_position");
-
-    Geolocator.getPositionStream().listen((Position position) {
-      print("Position envoyée : ${position.latitude}, ${position.longitude}");
-      
-      busPositionRef.update({
-        'latitude': position.latitude,
-        'longitude': position.longitude,
-        'timestamp': DateTime.now().millisecondsSinceEpoch, // Ajout d'un timestamp
-      });
+          // Update the document in the 'Bus' collection identified by its matricule
+          await FirebaseFirestore.instance.collection('Bus').doc(busMatricule).set({
+            'latitude': locationData.latitude,
+            'longitude': locationData.longitude,
+            'heading': locationData.heading,
+            'speed': locationData.speed,
+            'timestamp': FieldValue.serverTimestamp(),
+            'actif': _isTripStarted, // État du trajet
+          }, SetOptions(merge: true));
+        } catch (error) {
+          print("Erreur lors de la mise à jour de la position : $error");
+        }
+      }
     });
   }
 
-  void _toggleTrip() {
+  void _toggleTrip() async {
     setState(() {
       _isTripStarted = !_isTripStarted;
     });
+
+    if (busMatricule != null) {
+      try {
+        // Update the 'actif' field in both 'bus_position' and 'Bus' collections
+        await busPositionCollection.doc('bus_position').set({
+          'actif': _isTripStarted,
+        }, SetOptions(merge: true));
+
+        await FirebaseFirestore.instance.collection('Bus').doc(busMatricule).set({
+          'actif': _isTripStarted,
+        }, SetOptions(merge: true));
+      } catch (error) {
+        print("Erreur lors de la mise à jour de l'état du bus : $error");
+      }
+    }
 
     if (_isTripStarted) {
       _location.onLocationChanged.listen((LocationData locationData) {
         _locationStreamController.add(locationData);
       });
     } else {
-      _locationStreamController.add(_lastLocation!); // Arrêter les mises à jour
+      _locationStreamController.add(_lastLocation!);
     }
   }
 
@@ -112,10 +196,6 @@ class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixi
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Suivi du Bus'),
-        backgroundColor: Colors.blue,
-      ),
       body: StreamBuilder<LocationData>(
         stream: _locationStreamController.stream,
         builder: (context, snapshot) {
@@ -139,8 +219,8 @@ class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixi
                 ),
                 children: [
                   TileLayer(
-                    urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-                    tileProvider: CancellableNetworkTileProvider(), // Utilisation de CancellableTileProvider
+                    urlTemplate: "https://a.tile.openstreetmap.org/{z}/{x}/{y}.png", // Updated URL
+                    tileProvider: CancellableNetworkTileProvider(),
                   ),
                   if (locationData != null)
                     AnimatedMarkerLayer(

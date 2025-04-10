@@ -1,9 +1,7 @@
 import 'dart:async';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_animated_marker/flutter_map_animated_marker.dart';
 import 'package:flutter_map_cancellable_tile_provider/flutter_map_cancellable_tile_provider.dart';
 import 'package:latlong2/latlong.dart';
 
@@ -16,42 +14,73 @@ class SuiviBusPage extends StatefulWidget {
 
 class _SuiviBusPageState extends State<SuiviBusPage> {
   final MapController _mapController = MapController();
-  final StreamController<List<LatLng>> _busPositions = StreamController<List<LatLng>>.broadcast();
-
-  int index = 0;
-  Timer? _timer;
+  final StreamController<Map<String, LatLng>> _busPositions = 
+      StreamController<Map<String, LatLng>>.broadcast();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late StreamSubscription<QuerySnapshot> _busesSubscription;
+  final List<Map<String, dynamic>> _allBuses = [];
 
   @override
   void initState() {
     super.initState();
-    _listenToBusPosition();
+    _listenToActiveBuses();
+    _loadAllBuses();
   }
 
-  void _listenToBusPosition() {
-    DatabaseReference busPositionRef = FirebaseDatabase.instanceFor(
-      app: Firebase.app(),
-      databaseURL: "https://pfe-project-61a90-default-rtdb.europe-west1.firebasedatabase.app.firebaseio.com",
-    ).ref("bus_position");
+  void _listenToActiveBuses() {
+    _firestore.collection('Bus')
+      .where('actif', isEqualTo: true)
+      .snapshots()
+      .listen((QuerySnapshot snapshot) {
+        final Map<String, LatLng> activeBusPositions = {};
+        
+        for (var doc in snapshot.docs) {
+          final data = doc.data() as Map<String, dynamic>;
+          if (data['position'] != null) {
+            final GeoPoint geoPoint = data['position'] as GeoPoint;
+            activeBusPositions[doc.id] = LatLng(geoPoint.latitude, geoPoint.longitude);
+          }
+        }
+        
+        _busPositions.add(activeBusPositions);
+      });
+  }
 
-    busPositionRef.onValue.listen((DatabaseEvent event) {
-      final data = event.snapshot.value as Map<dynamic, dynamic>?;
-      if (data != null) {
-        double latitude = data['latitude'];
-        double longitude = data['longitude'];
-
-        LatLng newPosition = LatLng(latitude, longitude);
-        _busPositions.add([newPosition]);
-
-        // Déplacer la carte vers la nouvelle position
-        _mapController.move(newPosition, _mapController.camera.zoom);
+  void _loadAllBuses() {
+    _busesSubscription = _firestore.collection('Bus').snapshots().listen((snapshot) {
+      _allBuses.clear();
+      for (var doc in snapshot.docs) {
+        _allBuses.add({
+          'id': doc.id,
+          ...doc.data()
+        });
       }
     });
   }
 
+  void _handleBusTap(String busId, BuildContext context) {
+    final bus = _allBuses.firstWhere((bus) => bus['id'] == busId);
+    
+    if (bus['actif'] == true) {
+      final GeoPoint geoPoint = bus['position'];
+      _mapController.move(
+        LatLng(geoPoint.latitude, geoPoint.longitude),
+        _mapController.camera.zoom,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Le bus $busId est actuellement arrêté'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   @override
   void dispose() {
-    _timer?.cancel();
     _busPositions.close();
+    _busesSubscription.cancel();
     super.dispose();
   }
 
@@ -76,26 +105,50 @@ class _SuiviBusPageState extends State<SuiviBusPage> {
                 urlTemplate: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
                 tileProvider: CancellableNetworkTileProvider(),
               ),
-              StreamBuilder<List<LatLng>>(
+              StreamBuilder<Map<String, LatLng>>(
                 stream: _busPositions.stream,
                 builder: (context, snapshot) {
-                  if (!snapshot.hasData) return const SizedBox();
-                  return AnimatedMarkerLayer(
-                    options: AnimatedMarkerLayerOptions(
-                      marker: Marker(
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const SizedBox();
+                  }
+                  
+                  return MarkerLayer(
+                    markers: snapshot.data!.entries.map((entry) {
+                      return Marker(
                         width: 40,
                         height: 40,
-                        point: snapshot.data!.first,
-                        child: Transform.rotate(
-                          angle: 0,
-                          child: const Icon(
-                            Icons.directions_bus,
-                            color: Colors.red,
-                            size: 40,
+                        point: entry.value,
+                        child: GestureDetector(
+                          onTap: () => _handleBusTap(entry.key, context),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.directions_bus,
+                                color: Colors.red,
+                                size: 30, // Réduit la taille pour éviter l'overflow
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                constraints: const BoxConstraints(maxWidth: 40), // Limite la largeur
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  entry.key,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                  overflow: TextOverflow.ellipsis, // Gère le texte trop long
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    }).toList(),
                   );
                 },
               ),
@@ -123,13 +176,14 @@ class _SuiviBusPageState extends State<SuiviBusPage> {
       /// ---- 🎛 **Bouton flottant pour afficher la modal bottom sheet** ----
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          // Affichage du showModalBottomSheet
           showModalBottomSheet(
             context: context,
+            isScrollControlled: true, // Permet le défilement si le contenu est trop long
             builder: (BuildContext context) {
               return Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Column(
+                  mainAxisSize: MainAxisSize.min, // Prend seulement l'espace nécessaire
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
@@ -137,9 +191,27 @@ class _SuiviBusPageState extends State<SuiviBusPage> {
                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                     const Divider(),
-                    _buildBusInfo("Bus #1", "Route: Campus - Centre ville", Colors.green, "En route"),
-                    _buildBusInfo("Bus #2", "Route: Campus - Résidence", Colors.orange, "5 min"),
-                    _buildBusInfo("Bus #3", "Route: Campus - Bibliothèque", Colors.red, "Arrêté"),
+                    // Utilisation d'une ListView pour permettre le défilement
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height * 0.5, // Limite la hauteur
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: _allBuses.map((bus) {
+                          return GestureDetector(
+                            onTap: () {
+                              Navigator.pop(context); // Ferme le bottom sheet
+                              _handleBusTap(bus['id'], context);
+                            },
+                            child: _buildBusInfo(
+                              bus['id'],
+                              bus['route'] ?? 'Route non spécifiée',
+                              bus['actif'] == true ? Colors.green : Colors.red,
+                              bus['actif'] == true ? "En route" : "Arrêté",
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
                   ],
                 ),
               );
@@ -153,7 +225,7 @@ class _SuiviBusPageState extends State<SuiviBusPage> {
   }
 
   /// ---- 🚌 Widget pour afficher un Bus ----
-  Widget _buildBusInfo(String title, String route, Color color, String status) {
+  Widget _buildBusInfo(String matricule, String route, Color color, String status) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
@@ -164,16 +236,26 @@ class _SuiviBusPageState extends State<SuiviBusPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-                Text(route, style: TextStyle(color: Colors.grey[700])),
+                Text(matricule, style: const TextStyle(fontWeight: FontWeight.bold)),
+                Text(
+                  route,
+                  style: TextStyle(color: Colors.grey[700]),
+                  overflow: TextOverflow.ellipsis, // Empêche le débordement de texte
+                ),
               ],
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            // ignore: deprecated_member_use
-            decoration: BoxDecoration(color: color.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-            child: Text(status, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
+            decoration: BoxDecoration(
+              // ignore: deprecated_member_use
+              color: color.withOpacity(0.2),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              status,
+              style: TextStyle(color: color, fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),

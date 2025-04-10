@@ -122,6 +122,25 @@ if (userDoc.exists && userDoc.data()?['type'] == 'enseignant') {
 
         StudentService studentService = StudentService();
         await studentService.addStudent(uid, identifier, nom, prenom, email, dateNaissance, lieuNaissance, classe);
+      } else if (userDoc.exists && userDoc.data()?['type']== 'conducteur') {
+        String uid = userDoc.data()?['uid'];
+        String nom = userDoc.data()?['nom'];
+        String prenom = userDoc.data()?['prenom'];
+        String email = userDoc.data()?['email'];
+        String dateNaissance = userDoc.data()?['date_naissance'];
+        String lieuNaissance = userDoc.data()?['lieu_naissance'];
+        String matricule = userDoc.data()?['matricule_bus'];
+
+        // Ajouter le conducteur à la collection Conducteurs
+        await FirebaseFirestore.instance.collection("Conducteurs").doc(identifier).set({
+          "uid": uid,
+          "nom": nom,
+          "prenom": prenom,
+          "email": email,
+          "date_naissance": dateNaissance,
+          "lieu_naissance": lieuNaissance,
+          "matricule_bus": matricule,
+        });
       }
 
       await userCredential.user!.sendEmailVerification();

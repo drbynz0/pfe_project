@@ -70,14 +70,14 @@ class MessagesPageState extends State<MessagesPage> {
         .get();
 
     setState(() {
-      classes = List<String>.from(classSnapshot['classes']);
+      classes = List<String>.from(classSnapshot['classe']);
     });
   }
 
   Future<Map<String, String>> _getRecipientInfo(String chatId) async {
     if (chatId.contains('group')) {
       // Conversation de groupe
-      String className = chatId.split('_')[1]; // Supposons que le nom de la classe est la deuxième partie de chatId
+      String className = chatId.split('_')[1];
       return {'nom': className, 'prenom': '', 'type': 'Classe'};
     } else {
       // Conversation individuelle

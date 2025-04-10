@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '/services/auth_service.dart';
-import '/services/modify_password_service.dart'; // Importez le service de modification de mot de passe
-import '/services/notification_service.dart'; // Importez le service de notifications
-import '/services/language_service.dart'; // Importez le service de langue
+import '/services/modify_password_service.dart';
+import '/services/notification_service.dart';
+import '/services/language_service.dart';
+import 'profile_page.dart';
 import '/generated/l10n.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -48,10 +49,11 @@ class SettingsPageState extends State<SettingsPage> {
         children: [
           _buildSectionTitle(S.of(context).profileAndAccount),
           _buildListTileWithLock(Icons.person, S.of(context).profile, () {
-            Navigator.pushNamed(
+            Navigator.push(
               context,
-              '/profile',
-              arguments: {'teacherId': teacherId}, // Utilisez teacherId ici
+              MaterialPageRoute(
+                builder: (context) => ProfilePage(teacherId: teacherId!),
+              ),
             );
           }),
           _buildListTile(Icons.lock, S.of(context).password, () {
@@ -71,21 +73,11 @@ class SettingsPageState extends State<SettingsPage> {
           _buildListTile(Icons.alarm, S.of(context).examReminders, () {}),
 
           _buildSectionTitle(S.of(context).displayAndAccessibility),
-          _buildSwitchTile(Icons.dark_mode, S.of(context).darkMode, darkModeEnabled, (value) {
-            setState(() {
-              darkModeEnabled = value;
-            });
-          }),
           _buildListTile(Icons.language, S.of(context).language, () {
             _showLanguageDialog(context);
           }),
 
           _buildSectionTitle(S.of(context).securityAndPrivacy),
-          _buildSwitchTile(Icons.fingerprint, S.of(context).biometricAuth, biometricAuthEnabled, (value) {
-            setState(() {
-              biometricAuthEnabled = value;
-            });
-          }),
           _buildListTile(Icons.vpn_key, S.of(context).manageSessions, () {
             _showManageSessionsDialog(context);
           }),
@@ -117,7 +109,7 @@ class SettingsPageState extends State<SettingsPage> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: ListTile(
         leading: Icon(icon, color: Colors.blue),
-        title: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        title: Text(title, style: const TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
         trailing: const Icon(Icons.arrow_forward_ios, size: 18, color: Colors.grey),
         onTap: onTap,
       ),

@@ -17,6 +17,7 @@ class LoginPageState extends State<LoginPage> {
   bool _isLoading = false;
 
   Future<void> _login() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
     });
@@ -61,6 +62,8 @@ class LoginPageState extends State<LoginPage> {
     } on FirebaseAuthException catch (e) {
       showErrorDialog(e.message ?? 'Erreur de connexion');
     } finally {
+      // ignore: control_flow_in_finally
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });

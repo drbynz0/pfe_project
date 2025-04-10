@@ -1,20 +1,19 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-// ignore: deprecated_member_use, avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+//import 'package:firebase_messaging/firebase_messaging.dart';
+//import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:http/http.dart' as http;
-import 'dart:io';
+//import 'dart:io';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:typed_data';
+//import 'dart:typed_data';
 // ignore: unused_import
 import 'package:path/path.dart' as path;
+import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 
 class ChatPage extends StatefulWidget {
   final String chatId;
@@ -31,6 +30,9 @@ class ChatPageState extends State<ChatPage> {
   String? currentUserId;
   String? receiverId;
   PlatformFile? selectedFile;
+
+  bool _isEmojiVisible = false;
+  FocusNode focusNode = FocusNode();
 
   @override
   void initState() {
@@ -140,7 +142,7 @@ class ChatPageState extends State<ChatPage> {
               borderRadius: BorderRadius.circular(15),
             ),
             constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.7, // 70% de la largeur de l'écran
+              maxWidth: MediaQuery.of(context).size.width * 0.7,
             ),
             child: isFileMessage ? _buildFileMessage(message, isMe) : _buildTextMessage(message, isMe),
           ),
@@ -285,32 +287,80 @@ class ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildMessageInput() {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: Row(
-        children: [
-          IconButton(
-            icon: const Icon(Icons.attach_file, color: Colors.blue),
-            onPressed: _showFilePicker,
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Row(
+            children: [
+              IconButton(
+                icon: const Icon(Icons.attach_file, color: Colors.blue),
+                onPressed: _showFilePicker,
+              ),
+              IconButton(
+                icon: const Icon(Icons.emoji_emotions, color: Colors.orange),
+                onPressed: () {
+                  FocusScope.of(context).unfocus(); // Fermer le clavier
+                  setState(() {
+                    _isEmojiVisible = !_isEmojiVisible;
+                  });
+                },
+              ),
+              Expanded(
+                child: TextField(
+                  controller: messageController,
+                  focusNode: focusNode,
+                  onTap: () {
+                    if (_isEmojiVisible) {
+                      setState(() {
+                        _isEmojiVisible = false;
+                      });
+                    }
+                  },
+                  style: const TextStyle(color: Colors.black),
+                  decoration: const InputDecoration(
+                    hintText: "Écrire un message...",
+                    hintStyle: TextStyle(color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.all(Radius.circular(30)),
+                    ),
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.send, color: Colors.blue),
+                onPressed: _sendMessage,
+              ),
+            ],
           ),
-          Expanded(
-            child: TextField(
-              controller: messageController,
-              style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
-              decoration: InputDecoration(
-                hintText: "Écrire un message...",
-                hintStyle: const TextStyle(color: Color.fromARGB(255, 61, 60, 60)),
-                filled: true,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+        Offstage(
+          offstage: !_isEmojiVisible,
+          child: SizedBox(
+            height: 250,
+            child: EmojiPicker(
+              onEmojiSelected: (category, emoji) {
+                messageController.text += emoji.emoji;
+                messageController.selection = TextSelection.fromPosition(
+                  TextPosition(offset: messageController.text.length),
+                );
+              },
+              config: Config(
+                columns: 7,
+                emojiSizeMax: 32,
+                bgColor: Color(0xFFF2F2F2),
+                indicatorColor: Colors.blue,
+                iconColor: Colors.grey,
+                iconColorSelected: Colors.blue,
+                backspaceColor: Colors.red,
+                recentsLimit: 28,
               ),
             ),
           ),
-          IconButton(
-            icon: const Icon(Icons.send, color: Colors.blue),
-            onPressed: _sendMessage,
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -320,9 +370,9 @@ class ChatPageState extends State<ChatPage> {
       color: Colors.grey[200],
       child: Row(
         children: [
-          Expanded(
-            child: Text(selectedFile?.name ?? 'No file selected'),
-          ),
+          const Icon(Icons.insert_drive_file),
+          const SizedBox(width: 10),
+          Expanded(child: Text(selectedFile?.name ?? 'Aucun fichier')),
           IconButton(
             icon: const Icon(Icons.cancel, color: Colors.red),
             onPressed: () {
@@ -333,7 +383,7 @@ class ChatPageState extends State<ChatPage> {
           ),
           IconButton(
             icon: const Icon(Icons.send, color: Colors.blue),
-            onPressed: _uploadFile,
+            onPressed: _sendFile,
           ),
         ],
       ),
@@ -341,66 +391,21 @@ class ChatPageState extends State<ChatPage> {
   }
 
   void _showFilePicker() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-    if (result != null) {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(withData: true);
+    if (result != null && result.files.single.bytes != null) {
       setState(() {
         selectedFile = result.files.single;
       });
     }
   }
 
-void _uploadFile() async {
-  if (selectedFile == null) return;
+  Future<void> pickFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles();
 
-  String fileName = selectedFile!.name; // ✅ Récupérer le nom du fichier sans erreur
-  Reference storageRef = FirebaseStorage.instance.ref().child('chat_files/${widget.chatId}/$fileName');
-
-  UploadTask uploadTask;
-
-  if (kIsWeb) {
-    // ✅ Web : Utiliser Blob
-    Uint8List? fileBytes = selectedFile!.bytes;
-    if (fileBytes == null) return;
-
-    final blob = html.Blob([fileBytes]);
-    uploadTask = storageRef.putBlob(blob);
-  } else {
-    // ✅ Mobile : Utiliser File
-    File file = File(selectedFile!.path!);
-    uploadTask = storageRef.putFile(file);
+    if (result != null) {
+      selectedFile = result.files.first;
+    }
   }
-
-  TaskSnapshot taskSnapshot = await uploadTask;
-  String downloadUrl = await taskSnapshot.ref.getDownloadURL();
-
-  await FirebaseFirestore.instance
-      .collection('Users')
-      .doc(currentUserId)
-      .collection('UserChats')
-      .doc(widget.chatId)
-      .collection('Messages')
-      .add({
-    "sender_id": currentUserId,
-    "receiver_id": receiverId,
-    "text": "",
-    "file_url": downloadUrl,
-    "file_name": fileName,
-    "timestamp": FieldValue.serverTimestamp(),
-    "isRead": false,
-  });
-
-  setState(() {
-    selectedFile = null;
-  });
-}
-
-Future<void> pickFile() async {
-  FilePickerResult? result = await FilePicker.platform.pickFiles();
-
-  if (result != null) {
-    selectedFile = result.files.first; // ✅ Stocker correctement le fichier
-  }
-}
 
   void _sendMessage() async {
     String messageText = messageController.text.trim();
@@ -476,12 +481,12 @@ Future<void> pickFile() async {
 
     messageController.clear();
 
-  DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(currentUserId).get();
+  //DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(currentUserId).get();
   // Récupérer le token FCM du destinataire
-  DocumentSnapshot receiverDoc = await FirebaseFirestore.instance.collection('Users').doc(receiverId).get(); 
-  String? token = receiverDoc['fcm_token'];
+  //DocumentSnapshot receiverDoc = await FirebaseFirestore.instance.collection('Users').doc(receiverId).get(); 
+  //String? token = receiverDoc['fcm_token'];
 
-  if (token != null) {
+ /* if (token != null) {
     // ignore: deprecated_member_use
     await FirebaseMessaging.instance.sendMessage(
       to: token,
@@ -490,8 +495,65 @@ Future<void> pickFile() async {
         'body': messageText,
       },
     );
+  } */
+
   }
 
+  Future<void> _sendFile() async {
+    if (selectedFile == null || currentUserId == null || receiverId == null) return;
+
+    try {
+      final fileName = selectedFile!.name;
+      final fileBytes = selectedFile!.bytes;
+
+      if (fileBytes == null) {
+        throw Exception("File bytes are null. Ensure the file is selected properly.");
+      }
+
+      final storageRef = FirebaseStorage.instance.ref().child('chat_files/$fileName');
+      final uploadTask = storageRef.putData(fileBytes);
+
+      // Wait for the upload to complete
+      final taskSnapshot = await uploadTask.whenComplete(() {});
+
+      // Get the download URL after successful upload
+      final downloadUrl = await taskSnapshot.ref.getDownloadURL();
+
+      final messageData = {
+        'sender_id': currentUserId,
+        'receiver_id': receiverId,
+        'timestamp': FieldValue.serverTimestamp(),
+        'file_name': fileName,
+        'file_url': downloadUrl,
+      };
+
+      // Save the message to Firestore for both sender and receiver
+      await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(currentUserId)
+          .collection("UserChats")
+          .doc(widget.chatId)
+          .collection("Messages")
+          .add(messageData);
+
+      await FirebaseFirestore.instance
+          .collection('Users')
+          .doc(receiverId)
+          .collection("UserChats")
+          .doc(widget.chatId)
+          .collection("Messages")
+          .add(messageData);
+
+      setState(() {
+        selectedFile = null;
+      });
+    } catch (e) {
+      // Handle errors during upload or Firestore operations
+      print("Error during file upload or Firestore operation: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur lors de l'envoi du fichier : $e")),
+      );
+    }
   }
 
   void _downloadFile(String url) async {

@@ -304,7 +304,7 @@ void _showLogoutDialog(BuildContext context) {
             bodyMedium: TextStyle(color: Colors.white),
           ),
           iconTheme: const IconThemeData(color: Colors.white),
-          cardColor: const Color(0xFF2E2E2E), dialogTheme: DialogThemeData(backgroundColor: const Color(0xFF1E1E1E)),
+          cardColor: const Color.fromARGB(255, 47, 48, 81), dialogTheme: DialogThemeData(backgroundColor: const Color.fromARGB(255, 35, 43, 77)),
         ),
         child: AlertDialog(
           title: Text(S.of(context).logout, style: TextStyle(color: Colors.white)),
@@ -315,6 +315,9 @@ void _showLogoutDialog(BuildContext context) {
               child: const Text("Annuler"),
             ),
             ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color.fromARGB(255, 35, 31, 65),
+              ),
               onPressed: () async {
                 AuthService.logout(context);
               },
