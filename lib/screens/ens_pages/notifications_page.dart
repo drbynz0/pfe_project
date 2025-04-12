@@ -9,7 +9,7 @@ class NotificationsPage extends StatelessWidget {
     final notificationService = ListNotificationService();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF082E4A),
+      backgroundColor: const Color.fromARGB(255, 25, 35, 51),
       appBar: AppBar(
         title: const Text("Notifications"),
         backgroundColor: const Color(0xFF140C5F),

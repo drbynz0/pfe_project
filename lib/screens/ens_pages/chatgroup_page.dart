@@ -81,7 +81,7 @@ class ChatgroupPageState extends State<ChatgroupPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF082E4A),
+      backgroundColor: const Color.fromARGB(255, 25, 35, 51),
       appBar: AppBar(
         title: Text("Groupe Chat (${widget.recipientName})", style: TextStyle(fontSize: 20, color: Colors.white)),
         backgroundColor: const Color(0xFF140C5F),

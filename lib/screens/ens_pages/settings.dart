@@ -39,12 +39,7 @@ class SettingsPageState extends State<SettingsPage> {
     final String? teacherId = FirebaseAuth.instance.currentUser?.uid;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF082E4A),
-      appBar: AppBar(
-        title: Text(S.of(context).settings, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF140C5F),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
+      backgroundColor: const Color.fromARGB(255, 25, 35, 51),
       body: ListView(
         children: [
           _buildSectionTitle(S.of(context).profileAndAccount),

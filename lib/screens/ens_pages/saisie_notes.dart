@@ -73,11 +73,11 @@ class SaisieNotesPageState extends State<SaisieNotesPage> {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: const Color(0xFF082E4A),
+        backgroundColor: const Color.fromARGB(255, 25, 35, 51),
         appBar: AppBar(
           title: Text("Notes - ${widget.student['nom']} ${widget.student['prenom']}",
               style: const TextStyle(color: Colors.white)),
-          backgroundColor: const Color(0xFF140C5F),
+              backgroundColor: const Color.fromARGB(255, 25, 40, 62),
           bottom: const TabBar(
             indicatorColor: Color.fromARGB(255, 45, 123, 220),
             labelColor: Colors.white,

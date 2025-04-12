@@ -68,13 +68,13 @@ class TeacherHomePageState extends State<TeacherHomePage> {
     final String? teacherId = FirebaseAuth.instance.currentUser?.uid;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF082E4A),
+      backgroundColor: const Color.fromARGB(255, 25, 35, 51),
       appBar: AppBar(
         title: Text(
           S.of(context).appTitle, // Utilisez les traductions ici
           style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Inter Tight'),
         ),
-        backgroundColor: const Color(0xFF140C5F),
+        backgroundColor: const Color.fromARGB(255, 25, 40, 62),
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications, color: Colors.white, size: 24),
@@ -139,9 +139,9 @@ class TeacherHomePageState extends State<TeacherHomePage> {
           ),
         ],
         type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color.fromARGB(255, 31, 34, 72),
-        selectedItemColor: const Color.fromARGB(255, 45, 123, 220),
+        backgroundColor: const Color.fromARGB(255, 19, 20, 40),
         unselectedItemColor: const Color.fromARGB(255, 87, 99, 108),
+        selectedItemColor: const Color.fromARGB(255, 255, 255, 255),
       ),
     );
   }

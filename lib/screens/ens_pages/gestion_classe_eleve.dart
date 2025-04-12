@@ -19,6 +19,7 @@ class GestionClassesElevesState extends State<GestionClassesEleves> {
   List<Map<String, String>> matieres = [];
   List<Map<String, dynamic>> students = [];
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -26,7 +27,8 @@ class GestionClassesElevesState extends State<GestionClassesEleves> {
     _findTeacherDocument();
   }
 
-  Future<void> _findTeacherDocument() async {
+  // [Conserver toutes vos méthodes existantes comme _findTeacherDocument, _loadClassNames, etc.]
+   Future<void> _findTeacherDocument() async {
     String? uid = _auth.currentUser?.uid;
     if (uid == null) return;
 
@@ -110,207 +112,404 @@ class GestionClassesElevesState extends State<GestionClassesEleves> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF082E4A),
+      backgroundColor: const Color.fromARGB(255, 25, 35, 51),
       appBar: AppBar(
         title: const Text(
-          "Gestion des Classes & Élèves",
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Inter Tight'),
+          "Gestion des Présences",
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+          ),
         ),
-        backgroundColor: const Color(0xFF140C5F),
+        backgroundColor: const Color.fromARGB(255, 25, 40, 62),
         iconTheme: const IconThemeData(color: Colors.white),
+        centerTitle: true,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.send, color: Color.fromARGB(255, 72, 144, 226)),
-            onPressed: () => _envoyerListePresence(),
+            icon: const Icon(Icons.send, color: Colors.white),
+            onPressed: _envoyerListePresence,
+            tooltip: "Envoyer les présences",
           ),
         ],
       ),
       body: Column(
         children: [
-          // Barre de sélection de classe
-          Container(
-            color: Colors.blue[50],
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: classNames.map((className) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: _buildClassButton(className),
-                );
-              }).toList(),
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Sélection de la matière et affichage de l'horaire
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10),
-            child: Row(
-              children: [
-                // Choix de la matière
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    value: selectedMatiere,
-                    hint: const Text("Sélectionner une matière"),
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                    items: matieres
-                        .map((matiere) => DropdownMenuItem<String>(
-                              value: matiere["nom"],
-                              child: Text(matiere["nom"]!),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedMatiere = value;
-                        horaireMatiere = matieres
-                            .firstWhere((matiere) => matiere["nom"] == value)["horaire"]!;
-                      });
-                    },
-                  ),
-                ),
-                const SizedBox(width: 10),
-                // Affichage automatique de l'horaire
-                Expanded(
-                  child: TextField(
-                    controller: TextEditingController(text: horaireMatiere),
-                    readOnly: true,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: "Horaire",
-                      filled: true,
-                      fillColor: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Tableau des élèves
+          // Section de filtrage
+          _buildFilterSection(),
+          
+          // Liste des élèves
           Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: _buildDataTable(),
-            ),
+            child: _buildStudentList(),
           ),
-
-          // Bouton pour envoyer la liste
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton.icon(
-              onPressed: () => _envoyerListePresence(),
-              icon: const Icon(Icons.check_circle),
-              label: const Text("Envoyer la liste"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 20),
-              ),
-            ),
-          ),
+          
+          // Bouton d'envoi
+          _buildSubmitButton(),
         ],
       ),
     );
   }
 
-  /// **Boutons de sélection de classe**
-  Widget _buildClassButton(String className) {
-    return ElevatedButton(
-      onPressed: () {
+  Widget _buildFilterSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.only(bottomLeft: Radius.circular(20), bottomRight: Radius.circular(20)),
+        color: const Color.fromARGB(255, 33, 44, 71),
+        boxShadow: [
+          BoxShadow(
+            // ignore: deprecated_member_use
+            color: const Color.fromARGB(255, 119, 119, 119).withOpacity(0.3),
+            blurRadius: 10,
+            spreadRadius: 2,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          // Barre de recherche
+          TextField(
+            style: const TextStyle(color: Colors.white),
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: "Rechercher un élève...",
+              prefixIcon: const Icon(Icons.search, color: Colors.white),
+              hintStyle: const TextStyle(color: Colors.white54),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(30),
+                borderSide: BorderSide.none,
+              ),
+              filled: true,
+              fillColor: const Color.fromARGB(183, 28, 34, 58),
+              contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+            ),
+            onChanged: (value) => setState(() {}),
+          ),
+          const SizedBox(height: 16),
+          
+          // Sélecteurs de classe et matière
+          Row(
+            children: [
+              Expanded(
+                child: _buildClassDropdown(),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildSubjectDropdown(),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          
+          // Horaire
+          if (selectedMatiere != null) _buildScheduleInfo(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildClassDropdown() {
+    return DropdownButtonFormField<String>(
+      value: selectedClass,
+      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+      decoration: InputDecoration(
+        labelText: "Classe",
+        labelStyle: const TextStyle(color: Colors.white),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+        ),
+        filled: true,
+        fillColor: const Color.fromARGB(183, 255, 255, 255),
+      ),
+      items: classNames.map((className) {
+        return DropdownMenuItem(
+          value: className,
+          child: Text(className, style: const TextStyle(color: Colors.black)),
+        );
+      }).toList(),
+      onChanged: (value) {
         setState(() {
-          selectedClass = className;
+          selectedClass = value;
           selectedMatiere = null;
           horaireMatiere = "";
           _loadMatieres();
           _loadStudents();
         });
       },
-      style: ElevatedButton.styleFrom(
-        backgroundColor: selectedClass == className ? Colors.blue : Colors.grey[300],
-        foregroundColor: selectedClass == className ? Colors.white : Colors.black,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-      ),
-      child: Text(className),
     );
   }
 
-  /// **Table des élèves**
-  Widget _buildDataTable() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 5,
-              spreadRadius: 2,
-            )
+  Widget _buildSubjectDropdown() {
+    return DropdownButtonFormField<String>(
+      value: selectedMatiere,
+      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+      decoration: InputDecoration(
+        labelText: "Matière",
+        labelStyle: const TextStyle(color: Colors.white),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(30),
+        ),
+        filled: true,
+        fillColor: const Color.fromARGB(183, 255, 255, 255),
+      ),
+      items: matieres.map((matiere) {
+        return DropdownMenuItem(
+          value: matiere["nom"],
+          child: Text(matiere["nom"]!, style: const TextStyle(color: Colors.black)),
+        );
+      }).toList(),
+      onChanged: (value) {
+        setState(() {
+          selectedMatiere = value;
+          horaireMatiere = matieres.firstWhere(
+            (matiere) => matiere["nom"] == value)["horaire"]!;
+        });
+      },
+    );
+  }
+
+  Widget _buildScheduleInfo() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(183, 28, 34, 58),
+        borderRadius: BorderRadius.circular(30),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.access_time, color: Colors.white),
+          const SizedBox(width: 8),
+          Text(
+            "Horaire: $horaireMatiere",
+            style: const TextStyle(
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStudentList() {
+    if (selectedClass == null) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.group, size: 48, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              "Veuillez sélectionner une classe",
+              style: TextStyle(color: Colors.grey, fontSize: 16),
+            ),
           ],
         ),
-        padding: const EdgeInsets.all(8),
-        child: DataTable(
-          border: TableBorder.all(
-            color: Colors.blue[200]!,
-            borderRadius: BorderRadius.circular(12),
-            width: 1,
-          ),
-          columnSpacing: 20,
-          headingRowColor: WidgetStateProperty.resolveWith<Color?>(
-            (Set<WidgetState> states) => Colors.blue[200],
-          ),
-          columns: const [
-            DataColumn(label: Text("Identifiant", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Nom", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Prénom", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Présent", style: TextStyle(fontWeight: FontWeight.bold))),
-            DataColumn(label: Text("Absent", style: TextStyle(fontWeight: FontWeight.bold))),
+      );
+    }
+
+    if (students.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 48, color: Colors.grey),
+            SizedBox(height: 16),
+            Text(
+              "Aucun élève trouvé dans cette classe",
+              style: TextStyle(color: Colors.grey, fontSize: 16),
+            ),
           ],
-          rows: students.map((eleve) {
-            return DataRow(
-              cells: [
-                DataCell(Text(eleve["id"]!)),
-                DataCell(Text(eleve["nom"]!)),
-                DataCell(Text(eleve["prenom"]!)),
-                DataCell(Checkbox(
-                  value: eleve["present"],
-                  onChanged: (bool? value) {
-                    setState(() {
-                      eleve["present"] = value!;
-                      eleve["absent"] = !value;
-                    });
-                  },
-                )),
-                DataCell(Checkbox(
-                  value: eleve["absent"],
-                  onChanged: (bool? value) {
-                    setState(() {
-                      eleve["absent"] = value!;
-                      eleve["present"] = !value;
-                    });
-                  },
-                )),
+        ),
+      );
+    }
+
+    final filteredStudents = students.where((student) {
+      final searchTerm = _searchController.text.toLowerCase();
+      final fullName = "${student['nom']} ${student['prenom']}".toLowerCase();
+      return fullName.contains(searchTerm);
+    }).toList();
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: filteredStudents.length,
+      separatorBuilder: (context, index) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final student = filteredStudents[index];
+        return _buildStudentCard(student);
+      },
+    );
+  }
+
+  Widget _buildStudentCard(Map<String, dynamic> student) {
+    return Card(
+      color: const Color.fromARGB(255, 51, 66, 91),
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  "${student['nom']} ${student['prenom']}",
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: const Color.fromARGB(255, 30, 40, 63),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    student['id']!,
+                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                ),
               ],
-            );
-          }).toList(),
+            ),
+            const SizedBox(height: 12),
+            
+            // Boutons de présence/absence
+            Row(
+              children: [
+                Expanded(
+                  child: _buildPresenceButton(student),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildAbsenceButton(student),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 
-  /// **Méthode pour envoyer la liste des présences**
+  Widget _buildPresenceButton(Map<String, dynamic> student) {
+    return ElevatedButton(
+      onPressed: () {
+        setState(() {
+          student['present'] = !(student['present'] ?? false);
+          if (student['present']) student['absent'] = false;
+        });
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: student['present'] == true 
+            ? Colors.green[400]
+            : const Color.fromARGB(153, 238, 238, 238),
+        foregroundColor: student['present'] == true 
+            ? Colors.white 
+            : Colors.black,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            student['present'] == true 
+                ? Icons.check_circle 
+                : Icons.circle_outlined,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          const Text("Présent"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAbsenceButton(Map<String, dynamic> student) {
+    return ElevatedButton(
+      onPressed: () {
+        setState(() {
+          student['absent'] = !(student['absent'] ?? false);
+          if (student['absent']) student['present'] = false;
+        });
+      },
+      style: ElevatedButton.styleFrom(
+        backgroundColor: student['absent'] == true 
+            ? Colors.red[400]
+            : const Color.fromARGB(153, 238, 238, 238),
+        foregroundColor: student['absent'] == true 
+            ? Colors.white 
+            : Colors.black,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            student['absent'] == true 
+                ? Icons.cancel 
+                : Icons.circle_outlined,
+            size: 18,
+          ),
+          const SizedBox(width: 8),
+          const Text("Absent"),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSubmitButton() {
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: _envoyerListePresence,
+          icon: const Icon(Icons.send, size: 20),
+          label: const Text(
+            "ENVOYER LES PRÉSENCES",
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color.fromARGB(255, 30, 129, 175),
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _envoyerListePresence() async {
+    if (selectedMatiere == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Veuillez sélectionner une matière"),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     String jourActuel = DateFormat('EEEE', 'fr_FR').format(DateTime.now());
+    int absencesEnregistrees = 0;
+
     for (var eleve in students) {
       if (eleve["absent"] == true) {
         var docRef = FirebaseFirestore.instance.collection('Etudiants').doc(eleve["id"]);
@@ -321,14 +520,24 @@ class GestionClassesElevesState extends State<GestionClassesEleves> {
               "matiere": selectedMatiere,
               "horaire": horaireMatiere,
               "jour": jourActuel,
+              "date": DateTime.now().toIso8601String(),
             }
           ]),
         });
+        absencesEnregistrees++;
       }
     }
+
     // ignore: use_build_context_synchronously
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text("Liste de présence envoyée avec succès"), backgroundColor: Colors.green),
+      SnackBar(
+        content: Text(
+          absencesEnregistrees > 0
+              ? "$absencesEnregistrees absence(s) enregistrée(s)"
+              : "Aucune absence à enregistrer",
+        ),
+        backgroundColor: absencesEnregistrees > 0 ? Colors.green : Colors.blue,
+      ),
     );
   }
 }

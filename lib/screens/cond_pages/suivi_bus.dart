@@ -26,6 +26,7 @@ class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixi
   final MapController _mapController = MapController();
   final BehaviorSubject<LocationData> _locationStreamController = BehaviorSubject();
   final geodesy.Geodesy _geodesy = geodesy.Geodesy();
+  late CollectionReference alertsCollection;
 
   LocationData? _lastLocation;
   double _distance = 0.0;
@@ -45,7 +46,18 @@ class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixi
     await _getCurrentUserId();
     await _getBusMatricule();
     _initializeBusPositionCollection();
+    _initializeAlertsCollection();
     _startRealtimePositionUpdates();
+  }
+
+  // Initialiser la collection d'alertes
+  void _initializeAlertsCollection() {
+    if (currentUserId != null) {
+      alertsCollection = FirebaseFirestore.instance
+          .collection('Conducteurs')
+          .doc(currentUserId)
+          .collection('Alertes');
+    }
   }
 
   void _initializeBusPositionCollection() {
@@ -56,6 +68,8 @@ class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixi
           .collection('Bus');
     }
   }
+
+
 
   Future<void> _getCurrentUserId() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -74,6 +88,39 @@ class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixi
       }
     }
   }
+
+    // Méthode pour envoyer une alerte
+  Future<void> _sendAlert() async {
+    if (_lastLocation == null || currentUserId == null || busMatricule == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossible d\'envoyer l\'alerte: position inconnue'), backgroundColor: Colors.red,),
+      );
+      return;
+    }
+
+    try {
+      // Créer un nouveau document dans la collection Alertes
+      await alertsCollection.add({
+        'matricule': busMatricule,
+        'latitude': _lastLocation!.latitude,
+        'longitude': _lastLocation!.longitude,
+        'timestamp': FieldValue.serverTimestamp(),
+        'status': 'non_lue', // Statut initial de l'alerte
+      });
+
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Alerte envoyée avec succès!')),
+      );
+    } catch (e) {
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors de l\'envoi de l\'alerte: ${e.toString()}')),
+      );
+    }
+  }
+
+
 
   Future<void> _getBusMatricule() async {
     if (currentUserId == null) return;
@@ -126,6 +173,8 @@ class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixi
       );
     });
   }
+
+  
 
   void _startRealtimePositionUpdates() async {
     _location.onLocationChanged.listen((LocationData locationData) async {
@@ -193,6 +242,8 @@ class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixi
     super.dispose();
   }
 
+  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -257,6 +308,16 @@ class SuiviBusPageState extends State<SuiviBusPage> with TickerProviderStateMixi
                     padding: const EdgeInsets.symmetric(vertical: 15),
                   ),
                   child: Text(_isTripStarted ? "Arrêter le trajet" : "Démarrer le trajet"),
+                ),
+              ),
+              Positioned(
+                bottom: 60, // Adjusted position to move the button higher
+                right: 20,
+                child: FloatingActionButton(
+                  onPressed: _sendAlert,
+                  backgroundColor: Colors.red,
+                  tooltip: 'Envoyer une alerte',
+                  child: const Icon(Icons.warning, color: Colors.white),
                 ),
               ),
             ],

@@ -24,6 +24,7 @@ class NotesPageState extends State<NotesPage> {
     _findTeacherDocument();
   }
 
+  // [Garder toutes vos méthodes existantes comme _findTeacherDocument, _loadClassNames, etc...]
   Future<void> _findTeacherDocument() async {
     String? uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null) return;
@@ -80,27 +81,58 @@ class NotesPageState extends State<NotesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF082E4A),
-      appBar: AppBar(
-        title: const Text('Saisie des notes', style: TextStyle(color: Colors.white)),
-        backgroundColor: const Color(0xFF140C5F),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.download, color: Colors.green),
-            onPressed: () => _showExportOptions(context),
-          ),
-        ],
-      ),
+      backgroundColor: const Color.fromARGB(255, 25, 35, 51),
       body: Column(
         children: [
           _buildClassSelection(),
-          _buildSearchBar(),
+          _buildSearchAndExportRow(), // Modifié pour inclure l'export
           Expanded(child: _buildStudentStream()),
         ],
       ),
     );
   }
 
+  Widget _buildSearchAndExportRow() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: searchController,
+              decoration: InputDecoration(
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                filled: true,
+                fillColor: Colors.white,
+                labelText: "Rechercher un élève",
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(20),
+                  borderSide: const BorderSide(color: Colors.white),
+                ),
+                prefixIcon: const Icon(Icons.search),
+              ),
+              onChanged: (value) => setState(() {}),
+            ),
+          ),
+          const SizedBox(width: 8),
+          IconButton(
+            icon: const Icon(Icons.save, color: Colors.white),
+            onPressed: () => _showExportOptions(context),
+            tooltip: "Exporter les notes",
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.blue[700],
+              padding: const EdgeInsets.all(13),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // [Garder _buildClassSelection, _buildClassButton, etc...]
   Widget _buildClassSelection() {
     return Container(
       color: Colors.blue[50],
@@ -113,26 +145,6 @@ class NotesPageState extends State<NotesPage> {
             child: _buildClassButton(className),
           );
         }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildSearchBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: TextField(
-        controller: searchController,
-        decoration: InputDecoration(
-          hintStyle: TextStyle(color: Colors.grey[400]),
-          filled: true,
-          fillColor: Colors.white,
-          labelText: "Rechercher un élève",
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(20), borderSide: const BorderSide(color: Colors.white)),
-          prefixIcon: const Icon(Icons.search),
-        ),
-        onChanged: (value) {
-          setState(() {});
-        },
       ),
     );
   }
@@ -156,9 +168,14 @@ class NotesPageState extends State<NotesPage> {
     );
   }
 
-  // StreamBuilder pour écouter les changements dans Firestore
- Widget _buildStudentStream() {
-    if (selectedClass == null) return const Center(child: Text("Veuillez sélectionner une classe"));
+  Widget _buildStudentStream() {
+    if (selectedClass == null) {
+      return const Center(
+        child: Text(
+          "Veuillez sélectionner une classe",
+          style: TextStyle(color: Colors.white)),
+      );
+    }
 
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
@@ -171,14 +188,19 @@ class NotesPageState extends State<NotesPage> {
         }
 
         if (snapshot.hasError) {
-          return const Center(child: Text('Erreur de chargement des étudiants'));
+          return Center(
+              child: Text('Erreur de chargement: ${snapshot.error}',
+                  style: const TextStyle(color: Colors.white)));
         }
 
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('Aucun étudiant trouvé'));
+          return const Center(
+              child: Text('Aucun étudiant trouvé',
+                  style: TextStyle(color: Colors.white)));
         }
 
         var students = snapshot.data!.docs.map((doc) {
+          // [Garder votre logique existante de traitement des données]
           var data = doc.data() as Map<String, dynamic>;
           var notes = data['Notes'] as Map<String, dynamic>? ?? {};
           var anneeScolaire = data['annee_scolaire'] ?? "Inconnue"; // Sécurité si null
@@ -197,105 +219,214 @@ class NotesPageState extends State<NotesPage> {
               filteredNotes[matiereNom] = notesAnneeEnCours[matiereNom];
             }
           }
-
           return {
             'id': doc.id,
-            'nom': data['nom'],
-            'prenom': data['prenom'],
-            'annee_scolaire': anneeScolaire,
-            'notes': filteredNotes,
+            'nom': doc['nom'],
+            'prenom': doc['prenom'],
+            'annee_scolaire': doc['annee_scolaire'] ?? "Inconnue",
+            'notes': filteredNotes, // [Garder votre logique de traitement des notes]
           };
+
         }).toList();
 
-        return _buildDataTable(students);
+        return _buildStudentCards(students);
       },
     );
   }
 
-  Widget _buildDataTable(List<Map<String, dynamic>> students) {
-    List<Map<String, dynamic>> filteredStudents = students
-        .where((student) =>
-            student["nom"]!.toLowerCase().contains(searchController.text.toLowerCase()))
-        .toList();
+  Widget _buildStudentCards(List<Map<String, dynamic>> students) {
+    List<Map<String, dynamic>> filteredStudents = students.where((student) {
+      final fullName = "${student['nom']} ${student['prenom']}".toLowerCase();
+      return fullName.contains(searchController.text.toLowerCase());
+    }).toList();
 
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: const [
-            BoxShadow(
-              color: Colors.black12,
-              blurRadius: 5,
-              spreadRadius: 2,
-            )
-          ],
-        ),
-        padding: const EdgeInsets.all(8),
-        child: DataTable(
-          border: TableBorder.all(color: Colors.blue[200]!),
-          headingRowColor: WidgetStateProperty.resolveWith((_) => Colors.blue[200]),
-          columns: [
-            const DataColumn(label: Text("Code Étudiant", style: TextStyle(fontWeight: FontWeight.bold))),
-            const DataColumn(label: Text("Nom & Prénom", style: TextStyle(fontWeight: FontWeight.bold))),
-            ...matieres.map((matiere) => DataColumn(label: Text(
-              "${matiere["nom"]} (Coef: ${matiere["coef"]})",
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ))),
-            const DataColumn(label: Text("Action", style: TextStyle(fontWeight: FontWeight.bold))),
-          ],
-          rows: filteredStudents.map((student) {
-            return DataRow(
-              cells: [
-                DataCell(Text(student["id"]!)),
-                DataCell(Text("${student["nom"]} ${student["prenom"]}")),
-                ...matieres.map((matiere) =>
-                  DataCell(Center(child: Text(student["notes"][matiere["nom"]] ?? "-")))),
-                DataCell(
-                  Center(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => SaisieNotesPage(student: student, matieres: matieres),
+    return ListView.builder(
+      padding: const EdgeInsets.all(8),
+      itemCount: filteredStudents.length,
+      itemBuilder: (context, index) {
+        final student = filteredStudents[index];
+        return Card(
+          elevation: 4,
+          margin: const EdgeInsets.symmetric(vertical: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "${student['nom']} ${student['prenom']}",
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      "ID: ${student['id']}",
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                const Divider(),
+                const SizedBox(height: 8),
+                ...matieres.map((matiere) {
+                  final note = student['notes'][matiere['nom']] ?? "-";
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          matiere['nom'],
+                          style: const TextStyle(fontWeight: FontWeight.w500),
+                        ),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _getNoteColor(note),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                student['notes'][matiere['nom']] ?? "-",
+                                style: TextStyle(
+                                  color: note == "-" ? Colors.black : Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              "(Coef ${matiere['coef']})",
+                              style: TextStyle(color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                }),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.edit, size: 18, color: Color.fromARGB(255, 39, 8, 90)),
+                    label: const Text("Saisir/Modifier", 
+                        style: TextStyle(color: Color.fromARGB(255, 39, 8, 90))),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => SaisieNotesPage(
+                            student: student,
+                            matieres: matieres,
                           ),
-                        ).then((value) {
-                          if (value != null) {
-                            setState(() {
-                              student["notes"] = value;
-                            });
-                          }
-                        });
-                      },
-                      child: const Text("Saisir / Modifier"),
+                        ),
+                      ).then((value) {
+                        if (value != null) setState(() {});
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 145, 187, 230),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
                     ),
                   ),
                 ),
+                ),
               ],
-            );
-          }).toList(),
-        ),
-      ),
+            ),
+          ),
+        );
+      },
     );
+  }
+
+  Color _getNoteColor(dynamic note) {
+    if (note == "-") return Colors.grey[200]!;
+    final numericNote = double.tryParse(note.toString()) ?? 0;
+    if (numericNote < 8) return Colors.red;
+    if (numericNote < 12) return Colors.orange;
+    if (numericNote < 15) return Colors.lightGreen;
+    return Colors.green;
   }
 
   void _showExportOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      builder: (_) => Wrap(
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              "Exporter les notes",
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _buildExportButton(
+                  icon: Icons.picture_as_pdf,
+                  color: Colors.red,
+                  label: "PDF",
+                  onTap: () {
+                    Navigator.pop(context);
+                    ExportService.exportToPDF(context, []);
+                  },
+                ),
+                _buildExportButton(
+                  icon: Icons.table_chart,
+                  color: Colors.green,
+                  label: "Excel",
+                  onTap: () {
+                    Navigator.pop(context);
+                    ExportService.exportToExcel(context, []);
+                  },
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildExportButton({
+    required IconData icon,
+    required Color color,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          ListTile(
-            leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
-            title: const Text("Exporter en PDF"),
-            onTap: () => ExportService.exportToPDF(context, []), // Mettre les étudiants ici
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              // ignore: deprecated_member_use
+              color: color.withOpacity(0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 30),
           ),
-          ListTile(
-            leading: const Icon(Icons.table_chart, color: Colors.green),
-            title: const Text("Exporter en Excel"),
-            onTap: () => ExportService.exportToExcel(context, []), // Mettre les étudiants ici
-          ),
+          const SizedBox(height: 8),
+          Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold)),
         ],
       ),
     );
