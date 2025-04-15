@@ -99,13 +99,13 @@ class EmploiDuTempsPageState extends State<EmploiDuTempsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF082E4A),
+      backgroundColor: const Color.fromARGB(255, 25, 35, 51),
       appBar: AppBar(
         title: const Text(
           "Emploi du Temps",
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontFamily: 'Inter Tight'),
         ),
-        backgroundColor: const Color(0xFF140C5F),
+        backgroundColor: const Color.fromARGB(255, 25, 40, 62),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: LayoutBuilder(

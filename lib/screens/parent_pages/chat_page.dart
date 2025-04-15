@@ -10,29 +10,32 @@ import 'package:url_launcher/url_launcher.dart';
 // ignore: unused_import
 import 'package:path/path.dart' as path;
 
-class ChatclassPage extends StatefulWidget {
+class ChatPage extends StatefulWidget {
   final String chatId;
   final String recipientName;
 
-  const ChatclassPage({super.key, required this.chatId, required this.recipientName});
-
+  const ChatPage({super.key, required this.chatId, required this.recipientName});
+  
   @override
-  ChatclassPageState createState() => ChatclassPageState();
+  ChatPageState createState() => ChatPageState();
 }
 
-class ChatclassPageState extends State<ChatclassPage> {
+class ChatPageState extends State<ChatPage> {
   TextEditingController messageController = TextEditingController();
   String? currentUserId;
-  String? teacherId;
-  String? className;
+  String? receiverId;
   PlatformFile? selectedFile;
 
   @override
   void initState() {
     super.initState();
-    _getCurrentUserId();
-    _getTeacherId();
+    _initialize();
   }
+
+  Future<void> _initialize() async {
+    await _getCurrentUserId();
+    _getReceiverId();
+    }
 
   Future<void> _getCurrentUserId() async {
     User? user = FirebaseAuth.instance.currentUser;
@@ -52,23 +55,15 @@ class ChatclassPageState extends State<ChatclassPage> {
     }
   }
 
-  void _getTeacherId() {
+  void _getReceiverId() {
+    _getCurrentUserId();
     if (widget.chatId.contains('_')) {
       List<String> ids = widget.chatId.split('_');
-      teacherId = ids[0];
-      className = ids[1];
-    }
-  }
-
-  Future<String> _getUserInfo(String? userId) async {
-    DocumentSnapshot userDoc = await FirebaseFirestore.instance.collection('Users').doc(userId).get();
-
-    if (userDoc.exists) {
-      String nom = userDoc['nom'];
-      String prenom = userDoc['prenom'];
-      return "$nom $prenom";
-    } else {
-      return '';
+      if (ids[0] == currentUserId) {
+        receiverId = ids[1];
+      } else {
+        receiverId = ids[0];
+      }
     }
   }
 
@@ -95,8 +90,8 @@ class ChatclassPageState extends State<ChatclassPage> {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('Users')
-          .doc(teacherId)
-          .collection('UserChats')
+          .doc(currentUserId)
+          .collection("UserChats")
           .doc(widget.chatId)
           .collection("Messages")
           .orderBy("timestamp", descending: true)
@@ -171,42 +166,10 @@ class ChatclassPageState extends State<ChatclassPage> {
   }
 
   Widget _buildTextMessage(DocumentSnapshot message, bool isMe) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        SizedBox(
-          height: null,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (!isMe)
-                FutureBuilder<String>(
-                  future: _getUserInfo(message["sender_id"]),
-                  builder: (context, snapshot) {
-                    if (snapshot.connectionState == ConnectionState.waiting) {
-                      return const Text("Chargement...", style: TextStyle(color: Colors.grey));
-                    }
-                    if (snapshot.hasError) {
-                      return const Text("Erreur", style: TextStyle(color: Colors.grey));
-                    }
-                    return Text(
-                      snapshot.data ?? '',
-                      style: TextStyle(
-                        color: Colors.grey, // Couleur du texte pour le nom de l'expéditeur
-                        fontSize: 12, // Taille de police plus petite pour le nom
-                      ),
-                    );
-                  },
-                ),
-              Text(
-                message["text"],
-                style: TextStyle(color: isMe ? Colors.white : Colors.black),
-                softWrap: true,
-              ),
-            ],
-          ),
-        ),
-      ],
+    return Text(
+      message["text"],
+      style: TextStyle(color: isMe ? Colors.white : Colors.black),
+      softWrap: true,
     );
   }
 
@@ -262,7 +225,7 @@ class ChatclassPageState extends State<ChatclassPage> {
                 await FirebaseFirestore.instance
                     .collection('Users')
                     .doc(currentUserId)
-                    .collection("UserChats")
+                    .collection('UserChats')
                     .doc(widget.chatId)
                     .collection("Messages")
                     .doc(message.id)
@@ -297,7 +260,7 @@ class ChatclassPageState extends State<ChatclassPage> {
                 await FirebaseFirestore.instance
                     .collection('Users')
                     .doc(currentUserId)
-                    .collection("UserChats")
+                    .collection('UserChats')
                     .doc(widget.chatId)
                     .collection("Messages")
                     .doc(message.id)
@@ -380,95 +343,130 @@ class ChatclassPageState extends State<ChatclassPage> {
     }
   }
 
-/*  void _uploadFile() async {
-    if (selectedFile == null) return;
+/*void _uploadFile() async {
+  if (selectedFile == null) return;
 
-    String fileName = selectedFile!.name; // ✅ Récupérer le nom du fichier sans erreur
-    Reference storageRef = FirebaseStorage.instance.ref().child('chat_files/${widget.chatId}/$fileName');
+  String fileName = selectedFile!.name; // ✅ Récupérer le nom du fichier sans erreur
+  Reference storageRef = FirebaseStorage.instance.ref().child('chat_files/${widget.chatId}/$fileName');
 
-    UploadTask uploadTask;
+  UploadTask uploadTask;
 
-    if (kIsWeb) {
-      // ✅ Web : Utiliser Blob
-      Uint8List? fileBytes = selectedFile!.bytes;
-      if (fileBytes == null) return;
+  if (kIsWeb) {
+    // ✅ Web : Utiliser Blob
+    Uint8List? fileBytes = selectedFile!.bytes;
+    if (fileBytes == null) return;
 
-      final blob = html.Blob([fileBytes]);
-      uploadTask = storageRef.putBlob(blob);
-    } else {
-      // ✅ Mobile : Utiliser File
-      File file = File(selectedFile!.path!);
-      uploadTask = storageRef.putFile(file);
-    }
-
-    TaskSnapshot taskSnapshot = await uploadTask;
-    String downloadUrl = await taskSnapshot.ref.getDownloadURL();
-
-    await FirebaseFirestore.instance
-        .collection('Users')
-        .doc(teacherId)
-        .collection("UserChats")
-        .doc(widget.chatId)
-        .collection("Messages")
-        .add({
-      "sender_id": currentUserId,
-      "receiver_id": className,
-      "text": "",
-      "file_url": downloadUrl,
-      "file_name": fileName,
-      "timestamp": FieldValue.serverTimestamp(),
-      "isRead": false,
-    });
-
-    setState(() {
-      selectedFile = null;
-    });
-  } */
-
-  Future<void> pickFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles();
-
-    if (result != null) {
-      selectedFile = result.files.first;
-    }
+    final blob = html.Blob([fileBytes]);
+    uploadTask = storageRef.putBlob(blob);
+  } else {
+    // ✅ Mobile : Utiliser File
+    File file = File(selectedFile!.path!);
+    uploadTask = storageRef.putFile(file);
   }
+
+  TaskSnapshot taskSnapshot = await uploadTask;
+  String downloadUrl = await taskSnapshot.ref.getDownloadURL();
+
+  await FirebaseFirestore.instance
+      .collection('Users')
+      .doc(currentUserId)
+      .collection('UserChats')
+      .doc(widget.chatId)
+      .collection('Messages')
+      .add({
+    "sender_id": currentUserId,
+    "receiver_id": receiverId,
+    "text": "",
+    "file_url": downloadUrl,
+    "file_name": fileName,
+    "timestamp": FieldValue.serverTimestamp(),
+    "isRead": false,
+  });
+
+  setState(() {
+    selectedFile = null;
+  });
+} */
+
+Future<void> pickFile() async {
+  FilePickerResult? result = await FilePicker.platform.pickFiles();
+
+  if (result != null) {
+    selectedFile = result.files.first; // ✅ Stocker correctement le fichier
+  }
+}
 
   void _sendMessage() async {
     String messageText = messageController.text.trim();
     if (messageText.isEmpty) return;
 
-    if (currentUserId == null) return;
+    if (currentUserId == null || receiverId == null) return;
 
     // Référence à la collection UserChats de l'utilisateur actuel
-    DocumentReference chatDocRef = FirebaseFirestore.instance
+    DocumentReference currentUserChatRef = FirebaseFirestore.instance
         .collection('Users')
-        .doc(teacherId)
-        .collection("UserChats")
+        .doc(currentUserId)
+        .collection('UserChats')
         .doc(widget.chatId);
 
-    // Vérifiez si la collection de messages est vide
-    CollectionReference messagesCollectionRef = chatDocRef.collection("Messages");
-    QuerySnapshot messageSnapshot = await messagesCollectionRef.get();
+    // Référence à la collection UserChats du récepteur
+    DocumentReference receiverChatRef = FirebaseFirestore.instance
+        .collection('Users')
+        .doc(receiverId)
+        .collection('UserChats')
+        .doc(widget.chatId);
 
-    if (messageSnapshot.docs.isEmpty) {
-      // Créez le premier message
-      await messagesCollectionRef.add({
-        "sender_id": currentUserId,
-        "receiver_id": widget.recipientName,
-        "text": messageText,
-        "timestamp": FieldValue.serverTimestamp(),
-        "isRead": false,
+    // Vérifiez si la collection UserChats existe pour l'utilisateur actuel
+    DocumentSnapshot currentUserChatSnapshot = await currentUserChatRef.get();
+    if (!currentUserChatSnapshot.exists) {
+      await currentUserChatRef.set({
+        'chatId': widget.chatId,
+        'isGroup': false,
+        'participants': [currentUserId, receiverId],
+        'lastMessage': messageText,
+        'timestamp': FieldValue.serverTimestamp(),
       });
     } else {
-      // Ajoutez le message à la collection de messages
-      await messagesCollectionRef.add({
-        "sender_id": currentUserId,
-        "receiver_id": widget.recipientName,
-        "text": messageText,
-        "timestamp": FieldValue.serverTimestamp(),
-        "isRead": false,
+      await currentUserChatRef.update({
+        'lastMessage': messageText,
+        'timestamp': FieldValue.serverTimestamp(),
       });
     }
+
+    // Vérifiez si la collection UserChats existe pour le récepteur
+    DocumentSnapshot receiverChatSnapshot = await receiverChatRef.get();
+    if (!receiverChatSnapshot.exists) {
+      await receiverChatRef.set({
+        'chatId': widget.chatId,
+        'isGroup': false,
+        'participants': [currentUserId, receiverId],
+        'lastMessage': messageText,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    } else {
+      await receiverChatRef.update({
+        'lastMessage': messageText,
+        'timestamp': FieldValue.serverTimestamp(),
+      });
+    }
+
+    // Ajoutez le message à la collection Messages de l'utilisateur actuel
+    await currentUserChatRef.collection('Messages').add({
+      "sender_id": currentUserId,
+      "receiver_id": receiverId,
+      "text": messageText,
+      "timestamp": FieldValue.serverTimestamp(),
+      "isRead": false,
+    });
+
+    // Ajoutez le message à la collection Messages du récepteur
+    await receiverChatRef.collection('Messages').add({
+      "sender_id": currentUserId,
+      "receiver_id": receiverId,
+      "text": messageText,
+      "timestamp": FieldValue.serverTimestamp(),
+      "isRead": false,
+    });
 
     messageController.clear();
   }

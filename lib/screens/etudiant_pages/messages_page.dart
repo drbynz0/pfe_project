@@ -98,11 +98,7 @@ class MessagesPageState extends State<MessagesPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF082E4A),
-      appBar: AppBar(
-        title: const Text("Messagerie", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF140C5F),
-      ),
+      backgroundColor: const Color.fromARGB(255, 25, 35, 51),
       body: Column(
         children: [
           _buildSearchBar(),
@@ -193,7 +189,7 @@ class MessagesPageState extends State<MessagesPage> {
             }).toList();
 
             return SizedBox(
-              height: 80,
+              height: 90,
               child: ListView.builder(
                 scrollDirection: Axis.horizontal,
                 itemCount: filteredConversations.length,

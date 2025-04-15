@@ -17,7 +17,7 @@ class MessagesPageState extends State<MessagesPage> {
   String? currentUserId;
   List<String> classes = [];
   List<String> selectedUsers = [];
-  List<Map<String, dynamic>> allConversations = []; // Liste de toutes les conversations
+  List<Map<String, dynamic>> allConversations = [];
   List<Map<String, dynamic>> filteredConversations = [];
 
   @override

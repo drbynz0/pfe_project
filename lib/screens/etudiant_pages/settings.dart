@@ -18,11 +18,6 @@ class SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF082E4A),
-      appBar: AppBar(
-        title: const Text("Paramètres", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        backgroundColor: const Color(0xFF140C5F),
-        iconTheme: const IconThemeData(color: Colors.white),
-      ),
       body: ListView(
         children: [
           _buildSectionTitle("👤 Profil & Compte"),

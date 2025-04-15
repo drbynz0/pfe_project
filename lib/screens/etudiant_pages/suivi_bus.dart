@@ -87,10 +87,6 @@ class _SuiviBusPageState extends State<SuiviBusPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Suivi des Bus'),
-        backgroundColor: Colors.indigo[900],
-      ),
       body: Stack(
         children: [
           /// ---- 🗺 **Carte de suivi** ----

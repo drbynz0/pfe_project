@@ -161,7 +161,7 @@ Future<void> _loadNotes(String year) async {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(221, 34, 57, 94),
+      backgroundColor: const Color.fromARGB(255, 25, 35, 51),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Center(

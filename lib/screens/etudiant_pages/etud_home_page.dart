@@ -40,7 +40,7 @@ class EtudiantHomePageState extends State<EtudiantHomePage> {
     final String? studentId = FirebaseAuth.instance.currentUser?.uid;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF082E4A),
+      backgroundColor: const Color.fromARGB(255, 25, 35, 51),
       appBar: AppBar(
         title: const Text(
           'School App',
@@ -50,9 +50,8 @@ class EtudiantHomePageState extends State<EtudiantHomePage> {
             fontFamily: 'Inter Tight',
           ),
         ),
-        backgroundColor: const Color(0xFF140C5F),
+        backgroundColor: const Color.fromARGB(255, 25, 40, 62),
         iconTheme: const IconThemeData(color: Colors.white),
-        centerTitle: true,
         elevation: 0,
         actions: [
           IconButton(
@@ -98,9 +97,9 @@ class EtudiantHomePageState extends State<EtudiantHomePage> {
           BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
         ],
         type: BottomNavigationBarType.fixed,
-        backgroundColor: const Color.fromARGB(255, 31, 34, 72),
-        selectedItemColor: const Color.fromARGB(255, 45, 123, 220),
+        backgroundColor: const Color.fromARGB(255, 19, 20, 40),
         unselectedItemColor: const Color.fromARGB(255, 87, 99, 108),
+        selectedItemColor: const Color.fromARGB(255, 255, 255, 255),
       ),
     );
   }

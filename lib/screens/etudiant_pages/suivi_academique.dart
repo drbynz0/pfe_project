@@ -10,11 +10,8 @@ class SuiviAcademique extends StatelessWidget {
     return DefaultTabController(
       length: 2,
       child: Scaffold(
-        backgroundColor: const Color(0xFF082E4A),
+        backgroundColor: const Color.fromARGB(255, 25, 35, 51),
         appBar: AppBar(
-          title: const Text("Suivi Académique",
-            style: TextStyle(color: Colors.white, fontFamily: 'Inter Tight')
-          ),
           backgroundColor: const Color.fromARGB(255, 31, 34, 72),
           bottom: const TabBar(
             indicatorColor: Color.fromARGB(255, 45, 123, 220),
